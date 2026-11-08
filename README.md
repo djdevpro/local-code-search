@@ -77,7 +77,8 @@ lcs --root /path/to/project search "where is the keyboard shortcut handled?"
 | `update [--check]` | switches to the latest release |
 
 Global options: `--root <folder>`, `--device auto|cpu|cuda|directml|coreml`. Optional
-`local-code-search.toml` at the project root (model, device, languages, exclusions, fusion weights).
+`local-code-search.toml` at the project root, or the file named by `LCS_CONFIG` (model, device, languages,
+exclusions, fusion weights).
 
 ## Performance
 

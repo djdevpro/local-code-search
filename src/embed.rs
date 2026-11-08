@@ -48,11 +48,19 @@ pub fn fetch(model: &str) -> Result<ModelFiles> {
         special_tokens_map_file: read("special_tokens_map.json")?,
         tokenizer_config_file: read("tokenizer_config.json")?,
     };
-    let pooling = match read("1_Pooling/config.json") {
-        Ok(cfg) if String::from_utf8_lossy(&cfg).contains("\"pooling_mode_cls_token\": true") => Pooling::Cls,
-        _ => Pooling::Mean,
-    };
+    let pooling = pooling_of(read("1_Pooling/config.json").ok().as_deref());
     Ok(ModelFiles { tokenizer, pooling })
+}
+
+/// Pooling déclaré par `1_Pooling/config.json` (sentence-transformers) : CLS si
+/// `pooling_mode_cls_token` est vrai, moyenne sinon ou sans fichier. Le JSON est lu pour de bon :
+/// un fichier écrit sans espaces ne doit pas basculer en silence sur le mauvais pooling.
+fn pooling_of(config: Option<&[u8]>) -> Pooling {
+    let cls = config
+        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(bytes).ok())
+        .and_then(|v| v.get("pooling_mode_cls_token").and_then(serde_json::Value::as_bool))
+        .unwrap_or(false);
+    if cls { Pooling::Cls } else { Pooling::Mean }
 }
 
 /// Threads de la session des questions : 0 = tous les cœurs (mesuré sur SciFact :
@@ -152,6 +160,15 @@ fn normalized(mut v: Vec<f32>) -> Vec<f32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pooling_lu_dans_le_json_avec_ou_sans_espaces() {
+        assert!(matches!(pooling_of(Some(br#"{"pooling_mode_cls_token": true, "pooling_mode_mean_tokens": false}"#)), Pooling::Cls));
+        assert!(matches!(pooling_of(Some(br#"{"pooling_mode_cls_token":true,"pooling_mode_mean_tokens":false}"#)), Pooling::Cls));
+        assert!(matches!(pooling_of(Some(br#"{"pooling_mode_cls_token":false,"pooling_mode_mean_tokens":true}"#)), Pooling::Mean));
+        assert!(matches!(pooling_of(None), Pooling::Mean), "sans fichier : moyenne");
+        assert!(matches!(pooling_of(Some(b"pas du json")), Pooling::Mean));
+    }
 
     /// Même texte, même vecteur quel que soit le backend (télécharge le modèle : `--ignored`).
     #[test]

@@ -152,10 +152,10 @@ impl Default for Output {
     }
 }
 
-/// Charge `<root>/local-code-search.toml` s'il existe, sinon les valeurs par défaut,
-/// puis applique l'option `--device` de la ligne de commande.
+/// Charge `<root>/local-code-search.toml` s'il existe (ou le fichier de `LCS_CONFIG`, s'il est
+/// défini), sinon les valeurs par défaut, puis applique l'option `--device` de la ligne de commande.
 pub fn load(root: &Path, device: Option<String>) -> Result<Config> {
-    let path = root.join(FILE_NAME);
+    let path = std::env::var_os("LCS_CONFIG").map_or_else(|| root.join(FILE_NAME), std::path::PathBuf::from);
     let mut config: Config = match std::fs::read_to_string(&path) {
         Ok(text) => toml::from_str(&text).with_context(|| format!("config invalide : {}", path.display()))?,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Config::default(),
