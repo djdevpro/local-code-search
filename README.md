@@ -16,22 +16,28 @@ automatic GPU, no server, no cloud, no telemetry.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/benchmark-dark.svg">
-    <img src="assets/benchmark-light.svg" alt="Time to first answer 27% shorter with lcs: 31.5 s on average versus 43.4 s for Opus 5.5 alone, faster on 11 of 13 real tickets" width="760">
+    <img src="assets/benchmark-light.svg" alt="Time to first answer versus cost per ticket: Opus 5.5 alone 43.4 s and $0.56; with lcs 0.1, 44.4 s and $0.47; with lcs 0.2, 31.5 s and $0.53" width="760">
   </picture>
 </p>
 
-|  | Opus 5.5 alone | Opus 5.5 + lcs |
-|---|---|---|
-| Mean time to first answer | 43.4 s | **31.5 s (−27%)** |
-| Faster on | 2 of 13 tickets | **11 of 13 tickets** |
-| Mean cost per ticket | $0.56 | **$0.53 (−5%)** |
-| Files to change found | 74% | **77%** |
+|  | Opus 5.5 alone | + lcs 0.1 | + lcs 0.2 |
+|---|---|---|---|
+| Mean time to first answer | 43.4 s | 44.4 s | **31.5 s** |
+| Faster than Opus alone on | — | 7 of 13 tickets | **11 of 13 tickets** |
+| Mean cost per ticket | $0.56 | **$0.47** | $0.53 |
+| Files to change found | 74% | 74% | **77%** |
 
-13 real client tickets written by product owners, on a production codebase several years old
-(about 4,000 files). Each ticket is replayed at the commit of its time in a fresh Claude Code
-session, with the same configuration and tools for both setups (one run each); the answer is
-compared with the files actually changed. The client code and the tickets stay private: only these
-aggregates are published.
+With lcs 0.2 (main branch), Opus 5.5 reaches its first answer 27% sooner than alone (31.5 s
+instead of 43.4 s), finds a few more of the files to change and still costs 5% less per ticket.
+lcs 0.1 matched Opus alone on speed and accuracy for 15% less. What changed in 0.2: one result per
+file, the agent is told to write its queries in the language of the code, and lcs tools are always
+loaded.
+
+**How it was measured.** 13 real client tickets written by product owners, on a production codebase
+several years old (about 4,000 files). Each ticket is replayed at the commit of its time in a fresh
+Claude Code session, with the same configuration and tools for every setup (one run each); the
+answer is compared with the files actually changed. Model loading is excluded from the lcs 0.1 times
+(0.2 preloads it). The client code and the tickets stay private: only these aggregates are published.
 
 ## Install
 
@@ -59,7 +65,8 @@ lcs --root /path/to/project init       # hooks lcs into Claude Code / Cursor (MC
 | `def <name>` | exact definition of a symbol (`Parent::name` accepted) |
 | `serve` | MCP server over stdio (`search`, `def`, `status`), keeps the index fresh |
 | `watch` | re-indexes on every change |
-| `init [--dry-run]` | writes `.mcp.json` (lcs tools always loaded, other servers untouched), `.cursor/mcp.json`, a CLAUDE.md section (with `.bak` backups) |
+| `init [--dry-run]` | writes `.mcp.json` (lcs tools always loaded, other servers untouched), `.cursor/mcp.json`, a CLAUDE.md section, a Claude Code prompt hook (with `.bak` backups) |
+| `hook prompt` | Claude Code `UserPromptSubmit` hook: gives the agent the files probably involved before its first turn |
 | `status` / `config` | index statistics / effective configuration |
 | `bench <set.jsonl>` | evaluation: one `{"query", "expected": [paths]}` line per question |
 | `update [--check]` | switches to the latest release |
