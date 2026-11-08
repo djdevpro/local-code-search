@@ -11,24 +11,27 @@ Local code search for AI coding agents (Claude Code, Cursor…). It hands the ag
 of code (`file:line` + snippet), found by meaning and by keywords, over MCP. Embedded ONNX model,
 automatic GPU, no server, no cloud, no telemetry.
 
-## Benchmark: under review
+## Benchmark: first answer on real tickets
 
-> **The benchmark results are being revised.** An important issue was found in the way the
-> tests were run, so the figures below should not be relied on. The tests will be rerun soon and
-> this section will be updated.
-
-<details>
-<summary>Previous run (13 real client tickets, Opus 5.5 alone vs. Opus 5.5 + lcs)</summary>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/benchmark-dark.svg">
+    <img src="assets/benchmark-light.svg" alt="Time to first answer per ticket, Opus 5.5 alone versus Opus 5.5 with lcs" width="760">
+  </picture>
+</p>
 
 |  | Opus 5.5 alone | Opus 5.5 + lcs |
 |---|---|---|
-| Mean time to first answer | 43.4 s | 44.4 s |
-| Mean cost per ticket | $0.56 | $0.47 |
-| Files to change found | 74% | 74% |
+| Mean time to first answer | 43.4 s | **31.5 s (−27%)** |
+| Faster on | 2 of 13 tickets | **11 of 13 tickets** |
+| Mean cost per ticket | $0.56 | **$0.53 (−5%)** |
+| Files to change found | 74% | **77%** |
 
-Each ticket was replayed on a private legacy codebase (~4,000 files) at the commit of its time, in
-a fresh Claude Code session; answers were compared with the files actually changed.
-</details>
+13 real client tickets written by product owners, on a production codebase several years old
+(about 4,000 files). Each ticket is replayed at the commit of its time in a fresh Claude Code
+session, with the same configuration and tools for both setups (one run each); the answer is
+compared with the files actually changed. The client code and the tickets stay private: only these
+aggregates are published.
 
 ## Install
 
