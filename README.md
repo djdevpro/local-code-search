@@ -11,28 +11,40 @@ Local code search for AI coding agents (Claude Code, Codex, Cursor…). It hands
 of code (`file:line` + snippet), found by meaning and by keywords, over MCP. Embedded ONNX model,
 automatic GPU, no server, no cloud, no telemetry.
 
-## Benchmark: 13 real tickets
+## Does it help the agent?
+
+We gave Claude Code (Opus 5.5) 13 real tickets from a client project and asked it to find the files
+to change, once on its own and once with lcs. Two things count: how much the agent had to search, and
+whether it found the right files.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/benchmark-dark.svg">
-    <img src="assets/benchmark-light.svg" alt="Steps per ticket vs. files found: Opus 5.5 alone 11.1 steps and 74%; lcs 0.1 9.5 steps and 74%; lcs 0.2 9.1 steps and 77%; lcs 0.3 8.7 steps and 73%; lcs 0.4 9.7 steps and 73%" width="760">
+    <img src="assets/benchmark-light.svg" alt="Steps per ticket vs. files found, top left is better: Opus 5.5 alone 11.1 steps and 74% of files found; with lcs 0.1, 9.5 steps and 74%; lcs 0.2, 9.1 steps and 77%; lcs 0.3, 8.7 steps and 73%; lcs 0.4, 9.7 steps and 73%" width="760">
   </picture>
 </p>
 
-|  | Opus 5.5 alone | lcs 0.1 | lcs 0.2 | lcs 0.3 | lcs 0.4 |
+**How to read it:** each dot is one setup. Further left means fewer steps (the agent searched less);
+higher means more of the right files found. **Top left is best.**
+
+|  | Opus 5.5 alone | with lcs 0.1 | 0.2 | 0.3 | 0.4 |
 |---|---|---|---|---|---|
-| Steps per ticket | 11.1 | 9.5 | 9.1 | **8.7** | 9.7 |
-| Files to change found | 74% | 74% | **77%** | 73% | 73% |
+| Steps per ticket (fewer is better) | 11.1 | 9.5 | 9.1 | **8.7** | 9.7 |
+| Files to change found (more is better) | 74% | 74% | **77%** | 73% | 73% |
 | Cost per ticket | $0.56 | **$0.47** | $0.53 | **$0.47** | $0.52 |
 
-With lcs, Opus 5.5 needs 13–22% fewer steps to find the files to change, for the same accuracy and
-up to 15% less per ticket.
+**What it shows**
 
-**Method.** 13 real client tickets on a production codebase of about 4,000 files, each replayed at its
-commit in a fresh Claude Code session (Opus 5.5, one run per setup), compared with the files actually
-changed. Steps are the agent's tool rounds before it answers. Time is not compared: it depends on API
-load when the run happens. The code and the tickets stay private.
+- With lcs, the agent needs **13–22% fewer steps** and costs up to 15% less, for the same accuracy.
+- lcs makes the agent faster, not more accurate: every setup finds about three files out of four.
+- The lcs versions are within noise of each other (one or two files out of 34); the gap that matters
+  is with lcs versus without.
+
+**Method.** A step is one round of tool calls (search, grep, file read) before the agent answers.
+Each ticket is replayed at the commit of its time in a fresh session, one run per setup, on a
+production codebase of about 4,000 files; the answer is compared with the files actually changed.
+Time is not compared, because it depends on API load when the run happens. The code and the tickets
+stay private.
 
 ## Install
 
