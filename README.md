@@ -14,37 +14,33 @@ automatic GPU, no server, no cloud, no telemetry.
 ## Does it help the agent?
 
 We gave Claude Code (Opus 5.5) 13 real tickets from a client project and asked it to find the files
-to change, once on its own and once with lcs. Two things count: how much the agent had to search, and
-whether it found the right files.
+to change, once with its usual tools and once with lcs added. Two things count: how much the agent had
+to search, and whether it found the right files.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/benchmark-dark.svg">
-    <img src="assets/benchmark-light.svg" alt="Steps per ticket vs. files found, top left is better: Opus 5.5 alone 11.1 steps and 74% of files found; with lcs 0.1, 9.5 steps and 74%; lcs 0.2, 9.1 steps and 77%; lcs 0.3, 8.7 steps and 73%; lcs 0.4, 9.7 steps and 73%" width="760">
+    <img src="assets/benchmark-light.svg" alt="Steps per ticket vs. files found, top left is better: Opus 5.5 alone 10.4 steps and 69% of files found; with lcs 8.2 steps and 74%" width="760">
   </picture>
 </p>
 
 **How to read it:** each dot is one setup. Further left means fewer steps (the agent searched less);
 higher means more of the right files found. **Top left is best.**
 
-|  | Opus 5.5 alone | with lcs 0.1 | 0.2 | 0.3 | 0.4 |
-|---|---|---|---|---|---|
-| Steps per ticket (fewer is better) | 11.1 | 9.5 | 9.1 | **8.7** | 9.7 |
-| Files to change found (more is better) | 74% | 74% | **77%** | 73% | 73% |
-| Cost per ticket | $0.56 | **$0.47** | $0.53 | **$0.47** | $0.52 |
+|  | Opus 5.5 alone | with lcs |
+|---|---|---|
+| Steps per ticket (fewer is better) | 10.4 | **8.2** |
+| Files to change found (more is better) | 69% | **74%** |
+| Cost per ticket | $0.29 | **$0.25** |
 
-**What it shows**
-
-- With lcs, the agent needs **13–22% fewer steps** and costs up to 15% less, for the same accuracy.
-- lcs makes the agent faster, not more accurate: every setup finds about three files out of four.
-- The lcs versions are within noise of each other (one or two files out of 34); the gap that matters
-  is with lcs versus without.
+**What it shows:** with lcs, the agent needs **21% fewer steps**, makes less than half as many grep
+calls and costs about 15% less, while finding slightly more of the right files (19 of 34 instead of 17).
 
 **Method.** A step is one round of tool calls (search, grep, file read) before the agent answers.
-Each ticket is replayed at the commit of its time in a fresh session, one run per setup, on a
-production codebase of about 4,000 files; the answer is compared with the files actually changed.
-Time is not compared, because it depends on API load when the run happens. The code and the tickets
-stay private.
+Each ticket is replayed at the commit of its time in a fresh session, on a production codebase of about
+4,000 files, and the answer is compared with the files actually changed. Both setups run under the same
+fixed conditions (API key, maximum effort), one run each. Time is not compared, because it depends on
+API load. The code and the tickets stay private.
 
 ## Install
 
