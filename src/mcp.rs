@@ -3,7 +3,7 @@
 
 use anyhow::Result;
 use rmcp::handler::server::{router::tool::ToolRouter, wrapper::Parameters};
-use rmcp::model::{ServerCapabilities, ServerConfig};
+use rmcp::model::{MetaObject, ServerCapabilities, ServerConfig};
 use rmcp::{ServerHandler, ServiceExt, tool, tool_handler, tool_router};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -20,7 +20,8 @@ pub type Handler = Arc<dyn Fn(Call) -> String + Send + Sync>;
 
 #[derive(Deserialize, JsonSchema)]
 pub struct SearchArgs {
-    /// Ce que tu cherches, en langage naturel ou en termes de code.
+    /// Ce que tu cherches, dans la langue du code (le plus souvent l'anglais) et avec ses mots :
+    /// noms de classes, de fonctions, termes techniques.
     pub query: String,
     /// Nombre de résultats (0 = valeur de la configuration).
     #[serde(default)]
@@ -39,11 +40,20 @@ pub struct Server {
     tool_router: ToolRouter<Self>,
 }
 
-const SEARCH_DESC: &str = "Trouve les passages de code qui répondent à une question (par le sens et par les mots-clés). \
-Renvoie fichier:lignes et un extrait ciblé. Pour voir plus d'un passage, utilise Read avec offset et limit \
+const SEARCH_DESC: &str = "Trouve le code qui répond à une question (par le sens et par les mots-clés). \
+Écris la question dans la langue du code et avec ses mots (noms de classes, de fonctions, termes techniques ; \
+le plus souvent en anglais), même si la demande de l'utilisateur est dans une autre langue : \
+« mot de passe oublié » → « password reset request ». Renvoie un résultat par fichier : fichier:lignes, un extrait \
+ciblé et les autres passages du même fichier. Pour voir plus d'un passage, utilise Read avec offset et limit \
 (pas de commande shell). Pour une recherche exhaustive ou une chaîne exacte, utilise plutôt grep.";
 const DEF_DESC: &str = "Renvoie la définition exacte d'un symbole (fonction, classe, struct…) avec fichier:lignes.";
 const STATUS_DESC: &str = "État de l'index : fichiers, morceaux, couverture des vecteurs, backend matériel.";
+
+/// `_meta` des outils principaux : Claude Code les charge d'office au lieu de les différer derrière
+/// sa recherche d'outils (mesuré : outils différés → l'agent ignore lcs). Le démarrage n'attend pas.
+fn always_load() -> MetaObject {
+    MetaObject(serde_json::Map::from_iter([("anthropic/alwaysLoad".to_string(), serde_json::Value::Bool(true))]))
+}
 
 impl Server {
     async fn call(&self, call: Call) -> String {
@@ -54,12 +64,12 @@ impl Server {
 
 #[tool_router]
 impl Server {
-    #[tool(description = SEARCH_DESC)]
+    #[tool(description = SEARCH_DESC, meta = always_load())]
     async fn search(&self, Parameters(args): Parameters<SearchArgs>) -> String {
         self.call(Call::Search { query: args.query, limit: args.limit as usize }).await
     }
 
-    #[tool(description = DEF_DESC)]
+    #[tool(description = DEF_DESC, meta = always_load())]
     async fn def(&self, Parameters(args): Parameters<DefArgs>) -> String {
         self.call(Call::Def { name: args.name }).await
     }
@@ -79,7 +89,9 @@ impl ServerHandler for Server {
         info.server_info.version = env!("CARGO_PKG_VERSION").into();
         info.instructions = Some(
             "Recherche de code locale. `search` pour localiser ou comprendre du code, `def` pour une définition, \
-             grep pour les recherches exhaustives ou littérales."
+             grep pour les recherches exhaustives ou littérales. Écris les questions à `search` dans la langue du \
+             code (le plus souvent l'anglais) et avec ses mots, même si l'utilisateur écrit dans une autre langue : \
+             traduis d'abord les termes de sa demande."
                 .into(),
         );
         info

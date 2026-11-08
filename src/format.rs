@@ -6,6 +6,8 @@ use crate::types::Hit;
 use std::collections::HashSet;
 
 const SNIPPET_LINES: usize = 12;
+/// Autres passages du même fichier annoncés sous un résultat (au-delà : « +N »).
+const ALSO_SHOWN: usize = 3;
 
 /// `notes` : dégradations à annoncer (jamais silencieuses).
 pub fn render(query: &str, hits: &[Hit], notes: &[String], budget: usize, count: &dyn Fn(&str) -> usize) -> String {
@@ -53,6 +55,24 @@ fn block(rank: usize, hit: &Hit, terms: &HashSet<String>) -> String {
     }
     let mut s = format!("{rank}. {}:{}-{}  [{label}]\n", hit.path, hit.start, hit.end);
     s.push_str(&snippet(hit, terms));
+    if !hit.also.is_empty() {
+        // Le nom seulement s'il change (un long symbole découpé répète le sien), une ligne seule sans tiret.
+        let shown: Vec<String> = hit
+            .also
+            .iter()
+            .take(ALSO_SHOWN)
+            .map(|p| {
+                let lines = if p.start == p.end { p.start.to_string() } else { format!("{}-{}", p.start, p.end) };
+                match p.name.is_empty() || p.name == hit.name {
+                    true => lines,
+                    false => format!("{lines} {}", p.name),
+                }
+            })
+            .collect();
+        let more = hit.also.len().saturating_sub(ALSO_SHOWN);
+        let more = if more > 0 { format!(" (+{more})") } else { String::new() };
+        s.push_str(&format!("   aussi dans ce fichier : {}{more}\n", shown.join(", ")));
+    }
     s.push('\n');
     s
 }
@@ -106,7 +126,18 @@ mod tests {
             signature: "fn f()".into(),
             body: body.into(),
             score: 1.0,
+            also: Vec::new(),
         }
+    }
+
+    #[test]
+    fn annonce_les_autres_passages_du_fichier() {
+        let mut h = hit("fn f() {}", 1);
+        h.also = (0..5).map(|i| crate::types::Passage { start: 10 * (i + 2), end: 10 * (i + 2) + 5, name: format!("g{i}") }).collect();
+        h.also[1].name.clear();
+        h.also[2] = crate::types::Passage { start: 40, end: 40, name: "f".into() };
+        let out = render("f", &[h], &[], 10_000, &approx_tokens);
+        assert!(out.contains("   aussi dans ce fichier : 20-25 g0, 30-35, 40 (+2)\n"), "{out}");
     }
 
     #[test]

@@ -240,6 +240,7 @@ impl Bm25 {
                     signature: str_of(&d, f.signature),
                     body: str_of(&d, f.body),
                     score,
+                    also: Vec::new(),
                 })
             })
             .collect()

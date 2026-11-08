@@ -14,6 +14,8 @@ const GUIDE: &str = "## Recherche de code (local-code-search)
 
 - Pour **comprendre ou localiser** du code par le sens (« où est géré X ? », « comment marche Y ? ») :
   outil MCP `search`. Pour la définition d'un symbole précis : outil `def`.
+- Écrire les questions à `search` **dans la langue du code** (le plus souvent l'anglais) et avec ses mots
+  (noms de classes, de fonctions, termes techniques), même si la demande est dans une autre langue.
 - Pour une recherche **exhaustive ou littérale** (tous les appels de X, une chaîne exacte, une constante) :
   garder grep, il est plus fiable et moins cher.
 - Les résultats donnent `fichier:ligne` : pour voir plus d'un passage, utiliser l'outil Read avec offset et
@@ -22,14 +24,18 @@ const GUIDE: &str = "## Recherche de code (local-code-search)
 /// Renvoie la liste des actions (effectuées, ou prévues en `--dry-run`).
 pub fn init(root: &Path, exe: &Path, dry_run: bool) -> Result<Vec<String>> {
     let root = crate::walk::canonical(root)?;
-    let server = json!({ "command": exe.display().to_string(), "args": ["serve", "--root", root.display().to_string()] });
+    let cursor = json!({ "command": exe.display().to_string(), "args": ["serve", "--root", root.display().to_string()] });
+    // Claude Code : outils chargés d'office pour ce seul serveur (`alwaysLoad`), les autres serveurs
+    // gardent leur chargement à la demande. Mesuré : outils différés → l'agent ignore lcs.
+    let mut claude = cursor.clone();
+    claude["alwaysLoad"] = json!(true);
     let mut actions = Vec::new();
 
-    let mut targets = vec![root.join(".mcp.json")];
+    let mut targets = vec![(root.join(".mcp.json"), claude)];
     if root.join(".cursor").is_dir() {
-        targets.push(root.join(".cursor").join("mcp.json"));
+        targets.push((root.join(".cursor").join("mcp.json"), cursor));
     }
-    for path in targets {
+    for (path, server) in targets {
         let mut config: Value = match std::fs::read_to_string(&path) {
             Ok(text) => serde_json::from_str(&text).with_context(|| format!("JSON invalide : {}", path.display()))?,
             Err(_) => json!({}),
@@ -41,7 +47,7 @@ pub fn init(root: &Path, exe: &Path, dry_run: bool) -> Result<Vec<String>> {
         if !config["mcpServers"].is_object() {
             config["mcpServers"] = json!({});
         }
-        config["mcpServers"][SERVER] = server.clone();
+        config["mcpServers"][SERVER] = server;
         actions.push(format!("{} : serveur MCP « {SERVER} » enregistré", path.display()));
         if !dry_run {
             backup(&path)?;
@@ -97,6 +103,8 @@ mod tests {
         assert!(second.iter().filter(|a| a.contains("déjà à jour")).count() == 2, "{second:?}");
         let mcp: Value = serde_json::from_str(&std::fs::read_to_string(dir.join(".mcp.json")).unwrap()).unwrap();
         assert!(mcp["mcpServers"]["autre"].is_object() && mcp["mcpServers"][SERVER].is_object());
+        assert_eq!(mcp["mcpServers"][SERVER]["alwaysLoad"], json!(true), "outils lcs chargés d'office");
+        assert!(mcp["mcpServers"]["autre"].get("alwaysLoad").is_none(), "les autres serveurs ne sont pas touchés");
         let md = std::fs::read_to_string(dir.join("CLAUDE.md")).unwrap();
         assert!(md.starts_with("# Mon projet") && md.matches(BEGIN).count() == 1);
         assert!(dir.join("CLAUDE.md.bak").exists());

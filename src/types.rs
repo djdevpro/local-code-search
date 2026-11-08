@@ -64,6 +64,17 @@ pub struct Hit {
     #[serde(skip)]
     pub body: String,
     pub score: f32,
+    /// Autres passages du même fichier, dans l'ordre du classement (résultats regroupés par fichier).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub also: Vec<Passage>,
+}
+
+/// Un autre passage d'un fichier déjà présent dans les résultats.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Passage {
+    pub start: usize,
+    pub end: usize,
+    pub name: String,
 }
 
 /// Mode de recherche.

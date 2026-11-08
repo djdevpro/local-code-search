@@ -36,6 +36,9 @@ pub enum Command {
         /// Sortie JSON (pour les scripts)
         #[arg(long)]
         json: bool,
+        /// Un résultat par passage, sans regrouper par fichier
+        #[arg(long)]
+        passages: bool,
     },
     /// Trouve la définition exacte d'un symbole
     Def {

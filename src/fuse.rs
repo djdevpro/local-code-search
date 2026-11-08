@@ -63,6 +63,7 @@ mod tests {
             signature: String::new(),
             body: String::new(),
             score: 1.0,
+            also: Vec::new(),
         }
     }
 

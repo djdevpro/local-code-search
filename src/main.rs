@@ -1,7 +1,7 @@
 //! Composition des pipelines. Chaque étape vit dans son module ; ici on ne fait que les enchaîner.
 //!
 //! index  : walk → hash → parse → chunk → bm25 (immédiat) → embed → vectors
-//! search : (bm25 ∥ vectors) → fuse → rerank → format
+//! search : (bm25 ∥ vectors) → fuse → rerank → un résultat par fichier → format
 
 mod bm25;
 mod chunk;
@@ -13,6 +13,7 @@ mod embed;
 mod eval;
 mod format;
 mod fuse;
+mod group;
 mod hash;
 mod init;
 mod mcp;
@@ -67,9 +68,9 @@ fn main() -> Result<()> {
                 eprintln!("{}", engine.embed_missing(None)?);
             }
         }
-        Command::Search { query, mode, limit, json } => {
+        Command::Search { query, mode, limit, json, passages } => {
             let mut engine = Engine::open(root, config)?;
-            let (hits, notes) = engine.search(&query, mode, limit)?;
+            let (hits, notes) = engine.search(&query, mode, limit, !passages)?;
             match json {
                 true => println!("{}", serde_json::to_string_pretty(&hits)?),
                 false => print!("{}", engine.render(&query, &hits, &notes)),
@@ -96,7 +97,7 @@ fn main() -> Result<()> {
                 // Chauffe : modèle et session des questions chargés hors des mesures de latence.
                 let _ = engine.vector_leg("warm-up");
             }
-            let report = eval::run(&cases, |q| Ok(engine.search(q, mode, Some(10))?.0))?;
+            let report = eval::run(&cases, |q| Ok(engine.search(q, mode, Some(10), true)?.0))?;
             let json = serde_json::to_string_pretty(&serde_json::json!({ "dataset": dataset, "mode": mode, "report": report }))?;
             if let Some(path) = out {
                 std::fs::write(path, &json)?;
@@ -284,7 +285,8 @@ impl Engine {
         Ok(fuse::penalize_tests(hits, self.config.search.test_penalty))
     }
 
-    fn search(&mut self, query: &str, mode: Mode, limit: Option<usize>) -> Result<(Vec<Hit>, Vec<String>)> {
+    /// `by_file` : un résultat par fichier (les autres passages passent dans `also`), sinon un par passage.
+    fn search(&mut self, query: &str, mode: Mode, limit: Option<usize>, by_file: bool) -> Result<(Vec<Hit>, Vec<String>)> {
         let t = Instant::now();
         let s = self.config.search.clone();
         let mut notes = Vec::new();
@@ -326,6 +328,9 @@ impl Engine {
             if let Some(r) = self.reranker.as_mut() {
                 hits = fuse::penalize_tests(r.rerank(query, hits, self.config.reranker.candidates)?, s.test_penalty);
             }
+        }
+        if by_file {
+            hits = group::by_file(hits);
         }
         hits.truncate(limit.unwrap_or(s.results).max(1));
         status::record_search(&self.data, t.elapsed().as_millis() as u64, !hits.is_empty());
@@ -428,7 +433,7 @@ fn serve(engine: Engine) -> Result<()> {
         let mut e = engine.lock().expect("verrou");
         let result = match call {
             mcp::Call::Search { query, limit } => e
-                .search(&query, Mode::Hybrid, (limit > 0).then_some(limit))
+                .search(&query, Mode::Hybrid, (limit > 0).then_some(limit), true)
                 .map(|(hits, notes)| e.render(&query, &hits, &notes)),
             mcp::Call::Def { name } => {
                 let n = e.config.search.results;

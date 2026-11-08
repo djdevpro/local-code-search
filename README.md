@@ -52,11 +52,11 @@ lcs --root /path/to/project init       # hooks lcs into Claude Code / Cursor (MC
 | Command | What it does |
 |---|---|
 | `index [--no-embed]` | updates the index (only changed files are re-read) |
-| `search <query> [--mode bm25\|vector\|hybrid] [-n N] [--json]` | ranked passages |
+| `search <query> [--mode bm25\|vector\|hybrid] [-n N] [--json] [--passages]` | ranked results, one per file (`--passages`: one per passage) |
 | `def <name>` | exact definition of a symbol (`Parent::name` accepted) |
 | `serve` | MCP server over stdio (`search`, `def`, `status`), keeps the index fresh |
 | `watch` | re-indexes on every change |
-| `init [--dry-run]` | writes `.mcp.json`, `.cursor/mcp.json`, a CLAUDE.md section (with `.bak` backups) |
+| `init [--dry-run]` | writes `.mcp.json` (lcs tools always loaded, other servers untouched), `.cursor/mcp.json`, a CLAUDE.md section (with `.bak` backups) |
 | `status` / `config` | index statistics / effective configuration |
 | `bench <set.jsonl>` | evaluation: one `{"query", "expected": [paths]}` line per question |
 | `update [--check]` | switches to the latest release |
@@ -76,8 +76,12 @@ exclusions, fusion weights, token budget.
 ```
 index  : walk → hash → parse (tree-sitter) → chunk (1 symbol = 1 chunk) → BM25 (tantivy)
          → batched embeddings (fastembed/ort) → vectors.bin (f16, exact search)
-search : (BM25 ∥ vectors) → weighted RRF fusion → optional reranker → compact answer
+search : (BM25 ∥ vectors) → weighted RRF fusion → optional reranker → one result per file
+         (other matching passages listed under it) → compact answer
 ```
+
+Queries work best in the language of the code (usually English) and with its words; lcs tells the
+agent so in its MCP instructions and tool description, even when the user writes in another language.
 
 Symbol-level chunking for Python, TypeScript/JavaScript, Rust, Go and PHP; other text files are
 indexed as line windows. The only outbound connections are model downloads and `lcs update`, both
