@@ -50,7 +50,7 @@ pub enum Command {
     Serve,
     /// Surveille le projet et met l'index à jour à chaque modification
     Watch,
-    /// Branche l'outil dans Claude Code / Cursor
+    /// Branche l'outil dans Claude Code, Codex et Cursor (MCP, hook, consignes)
     Init {
         #[arg(long)]
         dry_run: bool,
@@ -65,6 +65,11 @@ pub enum Command {
         #[arg(long)]
         check: bool,
     },
+    /// Hooks de Claude Code (posés par `init`)
+    Hook {
+        #[command(subcommand)]
+        event: HookEvent,
+    },
     /// Banc d'essai sur un jeu JSONL {"query", "expected": [chemins]}
     Bench {
         dataset: PathBuf,
@@ -74,4 +79,10 @@ pub enum Command {
         #[arg(long)]
         out: Option<PathBuf>,
     },
+}
+
+#[derive(Subcommand)]
+pub enum HookEvent {
+    /// UserPromptSubmit : lit la demande sur stdin, renvoie les fichiers probablement concernés
+    Prompt,
 }

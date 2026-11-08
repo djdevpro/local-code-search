@@ -20,17 +20,17 @@ pub type Handler = Arc<dyn Fn(Call) -> String + Send + Sync>;
 
 #[derive(Deserialize, JsonSchema)]
 pub struct SearchArgs {
-    /// Ce que tu cherches, dans la langue du code (le plus souvent l'anglais) et avec ses mots :
-    /// noms de classes, de fonctions, termes techniques.
+    /// What you are looking for, in the language of the code (usually English) and with its words:
+    /// class and function names, technical terms. Translate the user's terms first if needed.
     pub query: String,
-    /// Nombre de résultats (0 = valeur de la configuration).
+    /// Number of results (0 = configured default).
     #[serde(default)]
     pub limit: u32,
 }
 
 #[derive(Deserialize, JsonSchema)]
 pub struct DefArgs {
-    /// Nom du symbole, éventuellement qualifié (`Parent::nom`).
+    /// Symbol name, optionally qualified (`Parent::name`).
     pub name: String,
 }
 
@@ -40,14 +40,18 @@ pub struct Server {
     tool_router: ToolRouter<Self>,
 }
 
-const SEARCH_DESC: &str = "Trouve le code qui répond à une question (par le sens et par les mots-clés). \
-Écris la question dans la langue du code et avec ses mots (noms de classes, de fonctions, termes techniques ; \
-le plus souvent en anglais), même si la demande de l'utilisateur est dans une autre langue : \
-« mot de passe oublié » → « password reset request ». Renvoie un résultat par fichier : fichier:lignes, un extrait \
-ciblé et les autres passages du même fichier. Pour voir plus d'un passage, utilise Read avec offset et limit \
-(pas de commande shell). Pour une recherche exhaustive ou une chaîne exacte, utilise plutôt grep.";
-const DEF_DESC: &str = "Renvoie la définition exacte d'un symbole (fonction, classe, struct…) avec fichier:lignes.";
-const STATUS_DESC: &str = "État de l'index : fichiers, morceaux, couverture des vecteurs, backend matériel.";
+const SEARCH_DESC: &str = "Finds the code that answers a question (by meaning and by keywords). \
+Write the query in the language of the code and with its words (class and function names, technical terms; \
+usually English), even when the user writes in another language: translate first, keeping a domain word \
+the code may use as is (\"mot de passe oublié\" → \"password reset request\"). \
+Returns one result per file: file:lines, a focused snippet and the other matching passages of that file. \
+Trust these results: open only the files you will change or must understand, and only the lines you need \
+(in Claude Code, Read with offset and limit rather than a shell command); do not grep again to confirm a file \
+already found. \
+For several aspects of a request, run several searches in the same turn. \
+Use grep only for an exhaustive search (every call of X) or an exact string.";
+const DEF_DESC: &str = "Returns the exact definition of a symbol (function, class, struct…) with file:lines.";
+const STATUS_DESC: &str = "Index status: files, chunks, vector coverage, hardware backend.";
 
 /// `_meta` des outils principaux : Claude Code les charge d'office au lieu de les différer derrière
 /// sa recherche d'outils (mesuré : outils différés → l'agent ignore lcs). Le démarrage n'attend pas.
@@ -88,10 +92,12 @@ impl ServerHandler for Server {
         info.server_info.name = "local-code-search".into();
         info.server_info.version = env!("CARGO_PKG_VERSION").into();
         info.instructions = Some(
-            "Recherche de code locale. `search` pour localiser ou comprendre du code, `def` pour une définition, \
-             grep pour les recherches exhaustives ou littérales. Écris les questions à `search` dans la langue du \
-             code (le plus souvent l'anglais) et avec ses mots, même si l'utilisateur écrit dans une autre langue : \
-             traduis d'abord les termes de sa demande."
+            "Local code search. Start with `search` to locate the code a request is about, `def` for a definition. \
+             Write `search` queries in the language of the code (usually English) and with its words, even when \
+             the user writes in another language: translate the terms of the request first. \
+             Trust the results: read only the files you will change or must understand, do not grep again to \
+             confirm a file `search` already found, and run several searches in the same turn when a request has \
+             several aspects. Keep grep for exhaustive or literal searches (every call of X, an exact string)."
                 .into(),
         );
         info

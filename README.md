@@ -7,7 +7,7 @@
 
 # local-code-search
 
-Local code search for AI coding agents (Claude Code, Cursor…). It hands the agent the right piece
+Local code search for AI coding agents (Claude Code, Codex, Cursor…). It hands the agent the right piece
 of code (`file:line` + snippet), found by meaning and by keywords, over MCP. Embedded ONNX model,
 automatic GPU, no server, no cloud, no telemetry.
 
@@ -53,9 +53,9 @@ cargo install --git https://github.com/djdevpro/local-code-search
 ## Quick start
 
 ```bash
+lcs --root /path/to/project init       # hooks lcs into Claude Code, Codex and Cursor
 lcs --root /path/to/project index      # keywords right away, then vectors
-lcs --root /path/to/project search "where is the keyboard shortcut handled?"
-lcs --root /path/to/project init       # hooks lcs into Claude Code / Cursor (MCP)
+lcs --root /path/to/project search "where is the keyboard shortcut handled?"   # try it
 ```
 
 | Command | What it does |
@@ -65,8 +65,8 @@ lcs --root /path/to/project init       # hooks lcs into Claude Code / Cursor (MC
 | `def <name>` | exact definition of a symbol (`Parent::name` accepted) |
 | `serve` | MCP server over stdio (`search`, `def`, `status`), keeps the index fresh |
 | `watch` | re-indexes on every change |
-| `init [--dry-run]` | writes `.mcp.json` (lcs tools always loaded, other servers untouched), `.cursor/mcp.json`, a CLAUDE.md section, a Claude Code prompt hook (with `.bak` backups) |
-| `hook prompt` | Claude Code `UserPromptSubmit` hook: gives the agent the files probably involved before its first turn |
+| `init [--dry-run]` | Claude Code: `.mcp.json` (lcs tools always loaded) and a CLAUDE.md section. Codex, if present: `.codex/config.toml` and an AGENTS.md section. Cursor, if present: `.cursor/mcp.json` and an always-applied rule. Other settings are kept, with `.bak` backups |
+| `hook prompt` | Experimental `UserPromptSubmit` hook for Claude Code and Codex, off by default (`[hook] enabled = true`, then `init`): gives the agent the files probably involved before its first turn |
 | `status` / `config` | index statistics / effective configuration |
 | `bench <set.jsonl>` | evaluation: one `{"query", "expected": [paths]}` line per question |
 | `update [--check]` | switches to the latest release |

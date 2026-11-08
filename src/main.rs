@@ -15,6 +15,7 @@ mod format;
 mod fuse;
 mod group;
 mod hash;
+mod hook;
 mod init;
 mod mcp;
 mod parse;
@@ -29,7 +30,7 @@ mod watch;
 
 use anyhow::Result;
 use clap::Parser;
-use cli::{Cli, Command};
+use cli::{Cli, Command, HookEvent};
 use config::Config;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
@@ -56,8 +57,11 @@ fn main() -> Result<()> {
         Command::Config => print!("{}", toml::to_string_pretty(&config)?),
         Command::Update { check } => update::run(VERSION, check)?,
         Command::Init { dry_run } => {
-            for action in init::init(&root, &std::env::current_exe()?, dry_run)? {
+            for action in init::init(&root, &std::env::current_exe()?, dry_run, config.hook.enabled)? {
                 println!("{action}");
+            }
+            if !root.join(&config.index.data_dir).join("index").is_dir() {
+                println!("Étape suivante : lcs --root \"{}\" index", root.display());
             }
         }
         Command::Index { no_embed } => {
@@ -90,6 +94,12 @@ fn main() -> Result<()> {
             keep_fresh(engine, true)?;
         }
         Command::Serve => serve(Engine::open(root, config)?)?,
+        Command::Hook { event: HookEvent::Prompt } => {
+            // Jamais d'erreur visible : un hook qui échoue ne doit pas gêner la demande.
+            if let Some(out) = hook_prompt(root, config) {
+                println!("{out}");
+            }
+        }
         Command::Bench { dataset, mode, out } => {
             let mut engine = Engine::open(root, config)?;
             let cases = eval::load(&dataset)?;
@@ -237,7 +247,7 @@ impl Engine {
     /// Avec `engine`, verrouille par lot pour ne jamais bloquer les recherches longtemps.
     fn embed_missing(&mut self, max_batches: Option<usize>) -> Result<String> {
         if let Err(e) = self.ensure_models() {
-            return Ok(format!("⚠ {e} : recherche par mots-clés seulement."));
+            return Ok(format!("⚠ {e}: keyword search only."));
         }
         let t = Instant::now();
         // Rien n'a changé et chaque morceau a son vecteur : inutile de relire tous les textes
@@ -297,7 +307,7 @@ impl Engine {
         let semantic = match mode {
             Mode::Bm25 => Vec::new(),
             _ => self.vector_leg(query).unwrap_or_else(|e| {
-                notes.push(format!("{e} : recherche par mots-clés seulement"));
+                notes.push(format!("{e}: keyword search only"));
                 Vec::new()
             }),
         };
@@ -306,7 +316,7 @@ impl Engine {
             if let Some(store) = &self.vectors {
                 let chunks = self.index.counts().1 as usize;
                 if store.len() < chunks {
-                    notes.push(format!("vecteurs calculés pour {} / {chunks} morceaux (lancer `lcs index`)", store.len()));
+                    notes.push(format!("vectors computed for {} / {chunks} chunks (run `lcs index`)", store.len()));
                 }
             }
         }
@@ -322,7 +332,7 @@ impl Engine {
                         self.model_notes.extend(r.notes.iter().cloned());
                         self.reranker = Some(r);
                     }
-                    Err(e) => notes.push(format!("reranker indisponible : {e:#}")),
+                    Err(e) => notes.push(format!("reranker unavailable: {e:#}")),
                 }
             }
             if let Some(r) = self.reranker.as_mut() {
@@ -414,6 +424,27 @@ fn keep_fresh(engine: Arc<Mutex<Engine>>, verbose: bool) -> Result<()> {
 fn engine_has_vectors(engine: &Arc<Mutex<Engine>>) -> bool {
     let e = engine.lock().expect("verrou");
     vectors::peek(&e.data.join("vectors.bin")).is_some_and(|n| n > 0)
+}
+
+/// `lcs hook prompt` : la demande de l'utilisateur (stdin) → fichiers probablement concernés.
+fn hook_prompt(root: PathBuf, config: Config) -> Option<String> {
+    use std::io::Read;
+    if !config.hook.enabled {
+        return None;
+    }
+    let mut stdin = String::new();
+    std::io::stdin().read_to_string(&mut stdin).ok()?;
+    let query = hook::prompt_to_search(&stdin, config.hook.min_words)?;
+    // Projet jamais indexé : ne rien créer, ne rien télécharger.
+    if !root.join(&config.index.data_dir).join("index").is_dir() {
+        return None;
+    }
+    let n = config.hook.results;
+    let mut engine = Engine::open(root, config).ok()?;
+    let has_vectors = vectors::peek(&engine.data.join("vectors.bin")).is_some_and(|v| v > 0);
+    let mode = if has_vectors { Mode::Hybrid } else { Mode::Bm25 };
+    let (hits, _) = engine.search(&query, mode, Some(n), true).ok()?;
+    hook::output(&hits)
 }
 
 fn serve(engine: Engine) -> Result<()> {

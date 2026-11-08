@@ -16,7 +16,7 @@ pub fn render(query: &str, hits: &[Hit], notes: &[String], budget: usize, count:
         out.push_str(&format!("⚠ {n}\n"));
     }
     if hits.is_empty() {
-        out.push_str(&format!("Aucun résultat pour « {query} ».\n"));
+        out.push_str(&format!("No result for \"{query}\".\n"));
         return out;
     }
     let terms = query_terms(query);
@@ -33,7 +33,7 @@ pub fn render(query: &str, hits: &[Hit], notes: &[String], budget: usize, count:
         }
     }
     if !overflow.is_empty() {
-        out.push_str("Autres résultats (budget atteint) :\n");
+        out.push_str("More results (token budget reached):\n");
         for l in overflow {
             out.push_str(&format!("- {l}\n"));
         }
@@ -51,7 +51,7 @@ fn block(rank: usize, hit: &Hit, terms: &HashSet<String>) -> String {
         label.push_str(&format!(" {}", hit.name));
     }
     if !hit.parent.is_empty() {
-        label.push_str(&format!(", dans {}", hit.parent));
+        label.push_str(&format!(", in {}", hit.parent));
     }
     let mut s = format!("{rank}. {}:{}-{}  [{label}]\n", hit.path, hit.start, hit.end);
     s.push_str(&snippet(hit, terms));
@@ -71,7 +71,7 @@ fn block(rank: usize, hit: &Hit, terms: &HashSet<String>) -> String {
             .collect();
         let more = hit.also.len().saturating_sub(ALSO_SHOWN);
         let more = if more > 0 { format!(" (+{more})") } else { String::new() };
-        s.push_str(&format!("   aussi dans ce fichier : {}{more}\n", shown.join(", ")));
+        s.push_str(&format!("   also in this file: {}{more}\n", shown.join(", ")));
     }
     s.push('\n');
     s
@@ -137,7 +137,7 @@ mod tests {
         h.also[1].name.clear();
         h.also[2] = crate::types::Passage { start: 40, end: 40, name: "f".into() };
         let out = render("f", &[h], &[], 10_000, &approx_tokens);
-        assert!(out.contains("   aussi dans ce fichier : 20-25 g0, 30-35, 40 (+2)\n"), "{out}");
+        assert!(out.contains("   also in this file: 20-25 g0, 30-35, 40 (+2)\n"), "{out}");
     }
 
     #[test]
@@ -153,6 +153,6 @@ mod tests {
         let hits: Vec<Hit> = (0..5).map(|i| hit(&"code();\n".repeat(20), i * 50 + 1)).collect();
         let out = render("code", &hits, &["vecteurs incomplets".into()], 60, &approx_tokens);
         assert!(out.starts_with("⚠ vecteurs incomplets"));
-        assert!(out.contains("Autres résultats (budget atteint)"));
+        assert!(out.contains("More results (token budget reached)"));
     }
 }

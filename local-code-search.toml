@@ -36,3 +36,10 @@ test_penalty = 0.5   # multiplicateur appliqué aux fichiers de test
 
 [output]
 token_budget = 1500
+
+[hook]
+# Hook « fichiers probablement concernés » (Claude Code, Codex), posé par `lcs init` s'il est activé.
+# Désactivé : au banc du 08/11/2026, il proposait surtout des fichiers hors sujet et ralentissait l'agent.
+enabled = false
+results = 6
+min_words = 6
