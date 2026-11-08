@@ -1,7 +1,8 @@
 name: Release
 
 # Une nouvelle version, quand on le décide. Actions > Release > Run workflow.
-# La version vient du dernier tag (v0.1.0, v0.1.1...), Cargo.toml sert seulement pour la première.
+# La version vient du dernier tag (v0.1.0, v0.1.1...), ou du champ « version explicite » s'il est
+# rempli ; Cargo.toml sert seulement pour la première.
 # Rien n'est poussé sur main, seul le tag de la version est créé.
 on:
   workflow_dispatch:
@@ -11,6 +12,10 @@ on:
         type: choice
         options: [patch, minor, major]
         default: patch
+      version:
+        description: Version explicite (ex. 0.3.0), prioritaire sur le choix ci-dessus ; vide pour la calculer
+        type: string
+        required: false
       notes:
         description: Points de version séparés par des points-virgules (vide pour reprendre les messages des commits)
         type: string
@@ -41,9 +46,18 @@ jobs:
         id: version
         env:
           BUMP: ${{ inputs.bump }}
+          EXPLICIT: ${{ inputs.version }}
         run: |
           last=$(git tag --list 'v*' --sort=-v:refname | head -n1)
-          if [ -z "$last" ]; then
+          if [ -n "$EXPLICIT" ]; then
+            next="${EXPLICIT#v}"
+            if ! [[ "$next" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Version explicite invalide : $EXPLICIT (attendu : X.Y.Z)"; exit 1
+            fi
+            if git rev-parse -q --verify "refs/tags/v$next" > /dev/null; then
+              echo "::error::Le tag v$next existe déjà"; exit 1
+            fi
+          elif [ -z "$last" ]; then
             next=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
           else
             IFS=. read -r major minor patch <<< "${last#v}"
