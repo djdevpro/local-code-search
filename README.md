@@ -16,28 +16,34 @@ automatic GPU, no server, no cloud, no telemetry.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/benchmark-dark.svg">
-    <img src="assets/benchmark-light.svg" alt="Time to first answer versus cost per ticket: Opus 5.5 alone 43.4 s and $0.56; with lcs 0.1, 44.4 s and $0.47; with lcs 0.2, 31.5 s and $0.53" width="760">
+    <img src="assets/benchmark-light.svg" alt="Time to first answer versus cost per ticket: Opus 5.5 alone 43.4 s and $0.56; with lcs 0.1, 44.4 s and $0.47; with lcs 0.2, 31.5 s and $0.53; with lcs 0.3, 31.8 s and $0.47" width="760">
   </picture>
 </p>
 
-|  | Opus 5.5 alone | + lcs 0.1 | + lcs 0.2 |
-|---|---|---|---|
-| Mean time to first answer | 43.4 s | 44.4 s | **31.5 s** |
-| Faster than Opus alone on | — | 7 of 13 tickets | **11 of 13 tickets** |
-| Mean cost per ticket | $0.56 | **$0.47** | $0.53 |
-| Files to change found | 74% | 74% | **77%** |
+|  | Opus 5.5 alone | + lcs 0.1 | + lcs 0.2 | + lcs 0.3 |
+|---|---|---|---|---|
+| Mean time to first answer | 43.4 s | 44.4 s | **31.5 s** | 31.8 s |
+| Faster than Opus alone on | — | 7 of 13 tickets | **11 of 13 tickets** | 10 of 13 tickets |
+| Mean cost per ticket | $0.56 | **$0.47** | $0.53 | **$0.47** |
+| Files to change found | 74% | 74% | **77%** | 73% |
 
-With lcs 0.2 (main branch), Opus 5.5 reaches its first answer 27% sooner than alone (31.5 s
-instead of 43.4 s), finds a few more of the files to change and still costs 5% less per ticket.
-lcs 0.1 matched Opus alone on speed and accuracy for 15% less. What changed in 0.2: one result per
-file, the agent is told to write its queries in the language of the code, and lcs tools are always
-loaded.
+With lcs 0.3, Opus 5.5 reaches its first answer 27% sooner than alone (31.8 s instead of 43.4 s)
+and costs 15% less per ticket ($0.47 instead of $0.56), for about the same share of files found
+(73% vs 74%: one file fewer out of 34, within the noise of a single run). Compared with 0.2: same
+speed, 10% cheaper and a quarter fewer grep calls, because lcs now gives the agent its instructions
+in English and tells it to trust the results instead of grepping again for a file already found.
+lcs 0.2 brought one result per file, queries in the language of the code and always-loaded tools;
+lcs 0.1 matched Opus alone on speed and accuracy for 15% less.
+
+lcs 0.3 also tried a prompt hook that hands the agent the files probably involved before its first
+turn. On these tickets it made things worse (41.4 s, 71% of files found): a search on the raw
+ticket mostly returned test fixtures, docs and translations. It ships off by default.
 
 **How it was measured.** 13 real client tickets written by product owners, on a production codebase
 several years old (about 4,000 files). Each ticket is replayed at the commit of its time in a fresh
 Claude Code session, with the same configuration and tools for every setup (one run each); the
 answer is compared with the files actually changed. Model loading is excluded from the lcs 0.1 times
-(0.2 preloads it). The client code and the tickets stay private: only these aggregates are published.
+(0.2 and 0.3 preload it). The client code and the tickets stay private: only these aggregates are published.
 
 ## Install
 
