@@ -16,7 +16,7 @@ automatic GPU, no server, no cloud, no telemetry.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/benchmark-dark.svg">
-    <img src="assets/benchmark-light.svg" alt="Time to first answer per ticket, Opus 5.5 alone versus Opus 5.5 with lcs" width="760">
+    <img src="assets/benchmark-light.svg" alt="Time to first answer 27% shorter with lcs: 31.5 s on average versus 43.4 s for Opus 5.5 alone, faster on 11 of 13 real tickets" width="760">
   </picture>
 </p>
 
