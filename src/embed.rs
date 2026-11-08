@@ -9,13 +9,13 @@ use fastembed::{
 };
 use std::path::{Path, PathBuf};
 
-/// Fichiers communes d'un modèle (tokenizer, pooling), depuis un dossier local ou le cache HF.
+/// Fichiers d'un modèle (tokenizer, pooling), depuis un dossier local ou le cache HF.
 pub struct ModelFiles {
     pub tokenizer: TokenizerFiles,
     pub pooling: Pooling,
 }
 
-/// Lit la variante ONNX adaptée au backend : GPU (fp16) ou CPU (int8).
+/// Lit la variante ONNX du backend (GPU ou CPU).
 pub fn onnx_for(model: &str, provider_is_gpu: bool, cpu_file: &str, gpu_file: &str) -> Result<Vec<u8>> {
     let file = if provider_is_gpu { gpu_file } else { cpu_file };
     Ok(std::fs::read(fetch_file(model, file)?)?)
@@ -29,7 +29,7 @@ pub fn identity(onnx: &[u8], files: &ModelFiles, extra: &str) -> String {
     h.finalize().to_hex()[..32].to_string()
 }
 
-/// Seule connexion sortante du programme : le téléchargement explicite d'un modèle.
+/// Un fichier du modèle : dossier local, sinon téléchargé une fois depuis Hugging Face.
 fn fetch_file(model: &str, file: &str) -> Result<PathBuf> {
     let local = Path::new(model);
     if local.is_dir() {
@@ -53,8 +53,7 @@ pub fn fetch(model: &str) -> Result<ModelFiles> {
 }
 
 /// Pooling déclaré par `1_Pooling/config.json` (sentence-transformers) : CLS si
-/// `pooling_mode_cls_token` est vrai, moyenne sinon ou sans fichier. Le JSON est lu pour de bon :
-/// un fichier écrit sans espaces ne doit pas basculer en silence sur le mauvais pooling.
+/// `pooling_mode_cls_token` est vrai, moyenne sinon ou sans fichier.
 fn pooling_of(config: Option<&[u8]>) -> Pooling {
     let cls = config
         .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(bytes).ok())

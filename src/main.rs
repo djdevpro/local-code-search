@@ -15,7 +15,6 @@ mod format;
 mod fuse;
 mod group;
 mod hash;
-mod hook;
 mod init;
 mod mcp;
 mod parse;
@@ -30,7 +29,7 @@ mod watch;
 
 use anyhow::Result;
 use clap::Parser;
-use cli::{Cli, Command, HookEvent};
+use cli::{Cli, Command};
 use config::Config;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
@@ -57,7 +56,7 @@ fn main() -> Result<()> {
         Command::Config => print!("{}", toml::to_string_pretty(&config)?),
         Command::Update { check } => update::run(VERSION, check)?,
         Command::Init { dry_run } => {
-            for action in init::init(&root, &std::env::current_exe()?, dry_run, config.hook.enabled)? {
+            for action in init::init(&root, &std::env::current_exe()?, dry_run)? {
                 println!("{action}");
             }
             if !root.join(&config.index.data_dir).join("index").is_dir() {
@@ -94,12 +93,6 @@ fn main() -> Result<()> {
             keep_fresh(engine, true)?;
         }
         Command::Serve => serve(Engine::open(root, config)?)?,
-        Command::Hook { event: HookEvent::Prompt } => {
-            // Jamais d'erreur visible : un hook qui échoue ne doit pas gêner la demande.
-            if let Some(out) = hook_prompt(root, config) {
-                println!("{out}");
-            }
-        }
         Command::Bench { dataset, mode, out } => {
             let mut engine = Engine::open(root, config)?;
             let cases = eval::load(&dataset)?;
@@ -126,8 +119,7 @@ struct Engine {
     index: bm25::Bm25,
     embedder: Option<embed::Embedder>,
     vectors: Option<vectors::Store>,
-    /// Cache des vecteurs par contenu (vectors-cache.bin) : un morceau dont le texte a déjà été vu
-    /// (autre branche, retour en arrière) reprend son vecteur sans recalcul.
+    /// Cache des vecteurs par contenu (vectors-cache.bin).
     content: Option<vectors::Store>,
     model_error: Option<String>,
     model_notes: Vec<String>,
@@ -250,19 +242,15 @@ impl Engine {
         }
     }
 
-    /// Calcule les vecteurs manquants et supprime ceux des morceaux disparus. Un contenu déjà vu
-    /// (vectors-cache.bin) reprend son vecteur sans recalcul : changer de branche ou revenir en
-    /// arrière ne recalcule que les morceaux jamais vus.
-    /// Avec `engine`, verrouille par lot pour ne jamais bloquer les recherches longtemps.
+    /// Calcule les vecteurs manquants (repris du cache si le contenu a déjà été vu) et supprime ceux
+    /// des morceaux disparus. `max_batches` : le serveur avance par lot pour ne pas bloquer les recherches.
     fn embed_missing(&mut self, max_batches: Option<usize>) -> Result<String> {
         if let Err(e) = self.ensure_models() {
             return Ok(format!("⚠ {e}: keyword search only."));
         }
         let t = Instant::now();
-        // Rien n'a changé, chaque morceau a son vecteur et le cache a déjà été rempli : inutile de
-        // relire tous les textes (78 000 sur un gros dépôt), ce qui bloquait les recherches au démarrage.
-        // (Le cache n'est vide qu'au premier passage ou après un changement de modèle ; on ne compare
-        // pas son nombre de vecteurs à celui des morceaux : deux morceaux identiques n'y comptent qu'une fois.)
+        // Rien n'a changé et chaque morceau a son vecteur : inutile de relire tous les textes. Le cache doit
+        // seulement être non vide (deux morceaux identiques n'y comptent qu'une fois).
         let chunks = self.index.counts().1 as usize;
         let cache_filled = self.content.as_ref().is_some_and(|c| c.len() > 0);
         if !self.index_changed && cache_filled && self.vectors.as_ref().is_some_and(|s| s.len() == chunks) {
@@ -278,8 +266,7 @@ impl Engine {
         store.delete(&stale)?;
         let plan = vectors::plan(texts, &have, |key| content.contains(key));
         let live_keys: HashSet<u64> = plan.seed.iter().chain(&plan.reuse).map(|&(_, k)| k).chain(plan.compute.iter().map(|c| c.1)).collect();
-        // Vecteurs déjà calculés mais pas encore dans le cache (premier passage avec le cache, ou
-        // ancienne version) : ils y vont, pour survivre à la disparition de leur morceau.
+        // Vecteurs calculés avant le cache : copiés dedans pour survivre à la disparition de leur morceau.
         let seed_vecs = store.get_many(&plan.seed.iter().map(|&(id, _)| id).collect::<Vec<_>>())?;
         content.put(plan.seed.iter().zip(seed_vecs).filter_map(|(&(_, k), v)| Some((k, v?))).collect())?;
         // Contenus déjà vus : vecteur repris du cache, sans modèle.
@@ -460,27 +447,6 @@ fn keep_fresh(engine: Arc<Mutex<Engine>>, verbose: bool) -> Result<()> {
 fn engine_has_vectors(engine: &Arc<Mutex<Engine>>) -> bool {
     let e = engine.lock().expect("verrou");
     vectors::peek(&e.data.join("vectors.bin")).is_some_and(|n| n > 0)
-}
-
-/// `lcs hook prompt` : la demande de l'utilisateur (stdin) → fichiers probablement concernés.
-fn hook_prompt(root: PathBuf, config: Config) -> Option<String> {
-    use std::io::Read;
-    if !config.hook.enabled {
-        return None;
-    }
-    let mut stdin = String::new();
-    std::io::stdin().read_to_string(&mut stdin).ok()?;
-    let query = hook::prompt_to_search(&stdin, config.hook.min_words)?;
-    // Projet jamais indexé : ne rien créer, ne rien télécharger.
-    if !root.join(&config.index.data_dir).join("index").is_dir() {
-        return None;
-    }
-    let n = config.hook.results;
-    let mut engine = Engine::open(root, config).ok()?;
-    let has_vectors = vectors::peek(&engine.data.join("vectors.bin")).is_some_and(|v| v > 0);
-    let mode = if has_vectors { Mode::Hybrid } else { Mode::Bm25 };
-    let (hits, _) = engine.search(&query, mode, Some(n), true).ok()?;
-    hook::output(&hits)
 }
 
 fn serve(engine: Engine) -> Result<()> {

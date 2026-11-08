@@ -1,6 +1,5 @@
-//! Un résultat par fichier. L'agent cherche des fichiers : les dix places montrent dix fichiers
-//! différents, et les autres passages d'un fichier sont signalés sous son meilleur passage
-//! (rejeu du banc : un même fichier occupait parfois les dix places).
+//! Un résultat par fichier : l'agent cherche des fichiers, les dix places montrent dix fichiers
+//! différents et les autres passages d'un fichier sont signalés sous son meilleur passage.
 
 use crate::types::{Hit, Passage};
 use std::collections::HashMap;

@@ -60,7 +60,7 @@ cargo install --git https://github.com/djdevpro/local-code-search
 ## Quick start
 
 ```bash
-lcs --root /path/to/project init       # hooks lcs into Claude Code, Codex and Cursor
+lcs --root /path/to/project init       # sets lcs up in Claude Code, Codex and Cursor
 lcs --root /path/to/project index      # keywords right away, then vectors
 lcs --root /path/to/project search "where is the keyboard shortcut handled?"
 ```

@@ -100,21 +100,18 @@ fn scan(bytes: &[u8], dim: usize) -> (HashMap<u64, u64>, usize, usize) {
     (offsets, dead, pos)
 }
 
-/// Clé du cache de vecteurs (vectors-cache.bin) : empreinte du texte embarqué. Le modèle, ses
-/// préfixes et sa longueur maximale sont dans l'en-tête du fichier (`identity`), qui invalide tout
-/// le cache quand l'un d'eux change.
+/// Clé du cache par contenu : empreinte du texte. Le modèle est dans l'en-tête du fichier
+/// (`identity`), qui invalide tout le cache quand il change.
 pub fn content_key(text: &str) -> u64 {
     u64::from_le_bytes(blake3::hash(text.as_bytes()).as_bytes()[..8].try_into().expect("8 octets"))
 }
 
-/// Répartition des morceaux vivants entre le magasin (id du morceau → vecteur) et le cache (clé du
-/// contenu → vecteur).
+/// Morceaux vivants répartis entre le magasin (id → vecteur) et le cache (contenu → vecteur).
 #[derive(Debug, Default, PartialEq)]
 pub struct Plan {
-    /// Vecteur déjà dans le magasin mais pas encore dans le cache : à y copier, pour qu'un morceau
-    /// qui disparaît (changement de branche, fichier modifié) garde son vecteur.
+    /// Dans le magasin, pas encore dans le cache : à y copier.
     pub seed: Vec<(u64, u64)>,
-    /// Pas de vecteur dans le magasin, mais ce contenu est dans le cache : repris sans calcul.
+    /// Absent du magasin, présent dans le cache : repris sans calcul.
     pub reuse: Vec<(u64, u64)>,
     /// Contenu jamais vu : à calculer (id, clé, texte).
     pub compute: Vec<(u64, u64, String)>,

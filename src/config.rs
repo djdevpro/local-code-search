@@ -14,7 +14,9 @@ pub struct Config {
     pub index: Index,
     pub search: Search,
     pub output: Output,
-    pub hook: Hook,
+    /// Ancienne section `[hook]` (hook retiré en 0.5) : acceptée et ignorée.
+    #[serde(skip_serializing)]
+    pub hook: Option<toml::Table>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,21 +64,6 @@ pub struct Search {
     pub test_penalty: f32,
 }
 
-/// Hook `UserPromptSubmit` de Claude Code et Codex (`lcs hook prompt`, posé par `lcs init` s'il est activé).
-/// Désactivé par défaut : au banc du 08/11/2026 (13 demandes réelles), la recherche sur la demande brute
-/// ramenait surtout des fixtures, docs et traductions (5 bons fichiers sur 78 proposés) et l'agent
-/// mettait plus de temps (41,4 s contre 31,5 s sans hook).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
-pub struct Hook {
-    /// Vrai : `lcs init` pose le hook ; faux : il ne le pose pas, et un hook déjà posé ne renvoie rien.
-    pub enabled: bool,
-    /// Fichiers proposés à l'agent.
-    pub results: usize,
-    /// En dessous de ce nombre de mots (« ok », « vas-y »), pas de recherche.
-    pub min_words: usize,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Output {
@@ -92,7 +79,7 @@ impl Default for Config {
             index: Index::default(),
             search: Search::default(),
             output: Output::default(),
-            hook: Hook::default(),
+            hook: None,
         }
     }
 }
@@ -137,12 +124,6 @@ impl Default for Index {
 impl Default for Search {
     fn default() -> Self {
         Self { rrf_k: 60.0, bm25_weight: 0.3, vector_weight: 1.0, results: 10, test_penalty: 0.5 }
-    }
-}
-
-impl Default for Hook {
-    fn default() -> Self {
-        Self { enabled: false, results: 6, min_words: 6 }
     }
 }
 
