@@ -1,0 +1,58 @@
+[package]
+name = "local-code-search"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Recherche de code locale pour agents IA : BM25 + modèle embarqué, via MCP"
+
+[[bin]]
+name = "lcs"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.6", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "1.2"
+ignore = "0.4"
+blake3 = "1.8"
+rayon = "1.12"
+tree-sitter = "0.27"
+tree-sitter-python = "0.25"
+tree-sitter-typescript = "0.23"
+tree-sitter-javascript = "0.25"
+tree-sitter-rust = "0.24"
+tree-sitter-go = "0.25"
+tree-sitter-php = "0.24"
+text-splitter = { version = "0.33", features = ["code"] }
+tantivy = "0.27"
+fastembed = { version = "7.6", default-features = false, features = ["ort-download-binaries-rustls-tls", "hf-hub-rustls-tls"] }
+hf-hub = { version = "0.5", default-features = false, features = ["ureq", "rustls-tls"] }
+tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
+half = "2.7"
+sha2 = "0.11"
+self-replace = "1"
+ureq = { version = "3.5", default-features = false, features = ["json", "rustls"] }
+memmap2 = "0.9"
+notify = "8.2"
+notify-debouncer-full = "0.7"
+rmcp = { version = "3.9", features = ["server", "transport-io", "macros"] }
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "io-std"] }
+schemars = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Accélération matérielle : même version d'ort que fastembed, backend natif par plateforme.
+[target.'cfg(windows)'.dependencies]
+ort = { version = "=2.0.0-rc.15", features = ["directml"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+ort = { version = "=2.0.0-rc.15", features = ["coreml"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+ort = { version = "=2.0.0-rc.15", features = ["cuda"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 4

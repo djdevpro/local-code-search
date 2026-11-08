@@ -1,0 +1,38 @@
+# Configuration de local-code-search.
+# Fichier facultatif : toute option absente prend sa valeur par défaut (celles-ci).
+# L'option --device de la ligne de commande prime sur ce fichier.
+
+# Backend matériel : auto | cpu | cuda | directml | coreml
+device = "auto"
+
+[model]
+# Embedder Hugging Face (format ONNX), téléchargé une fois puis utilisé hors ligne
+embedder = "Alibaba-NLP/gte-modernbert-base"   # ou un dossier local
+onnx_file = "onnx/model_int8.onnx"           # variante CPU (quantifiée int8)
+onnx_file_gpu = "onnx/model.onnx"            # variante GPU (fp32)
+query_prefix = ""
+document_prefix = ""
+max_tokens = 512     # tokens par morceau : 1024 divise le débit par deux
+batch_size = 32
+
+[reranker]
+model = "Alibaba-NLP/gte-reranker-modernbert-base"
+onnx_file = "onnx/model_int8.onnx"
+onnx_file_gpu = "onnx/model.onnx"
+enabled = false      # activé seulement si le banc d'essai prouve un gain
+candidates = 50
+
+[index]
+data_dir = ".lcs"
+languages = ["python", "typescript", "javascript", "rust", "go", "php"]
+exclude = ["banc/**"]    # motifs en plus du .gitignore (le banc contient les réponses)
+
+[search]
+rrf_k = 60.0
+bm25_weight = 0.3     # réglé sur le banc (SciFact, NFCorpus, CosQA, questions)
+vector_weight = 1.0
+results = 10
+test_penalty = 0.5   # multiplicateur appliqué aux fichiers de test
+
+[output]
+token_budget = 1500

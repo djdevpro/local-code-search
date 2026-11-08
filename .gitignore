@@ -1,0 +1,5 @@
+/target
+/.lcs
+__pycache__/
+# Banc d'essai : strictement local (données confidentielles), jamais publié
+/banc/

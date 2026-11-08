@@ -1,0 +1,49 @@
+name: Modèle
+
+# Charge vraiment le modèle sur chaque système (téléchargement Hugging Face, backend matériel),
+# indexe ce dépôt avec les vecteurs et lance le banc d'essai maison. Manuel : Actions > Modèle.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  model:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            export RUSTFLAGS="-C link-arg=$(xcrun clang --print-file-name=lib/darwin/libclang_rt.osx.a)"
+          fi
+          cargo build --release --locked
+
+      # Les Mac de GitHub n'ont que 7 Go : CoreML compile le modèle fp32 et sature avec des lots
+      # de 32 (processus tué, code 137). Lots de 8 sur macOS.
+      - name: Index avec vecteurs
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            sed -i '' 's/^batch_size = .*/batch_size = 8/' local-code-search.toml
+            grep '^batch_size' local-code-search.toml
+          fi
+          target/release/lcs --root . index 2>&1 | tr '\r' '\n' | tee index.log
+
+      - name: Backend et recherche hybride
+        shell: bash
+        run: |
+          set -o pipefail
+          grep -E "chargé sur|calculés|⚠" index.log
+          if [ "$RUNNER_OS" = "macOS" ]; then grep -q "chargé sur coreml" index.log || echo "::warning::CoreML non utilisé"; fi
+          target/release/lcs --root . search "where are identifiers split into subwords" --mode hybrid -n 3 | tee search.txt
+          grep -q "src/split.rs" search.txt
