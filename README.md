@@ -73,7 +73,7 @@ lcs --root /path/to/project search "where is the keyboard shortcut handled?"   #
 | `watch` | re-indexes on every change |
 | `init [--dry-run]` | Claude Code: `.mcp.json` (lcs tools always loaded) and a CLAUDE.md section. Codex, if present: `.codex/config.toml` and an AGENTS.md section. Cursor, if present: `.cursor/mcp.json` and an always-applied rule. Other settings are kept, with `.bak` backups |
 | `hook prompt` | Experimental `UserPromptSubmit` hook for Claude Code and Codex, off by default (`[hook] enabled = true`, then `init`): gives the agent the files probably involved before its first turn |
-| `status` / `config` | index statistics / effective configuration |
+| `status` / `config` | index statistics (files, chunks, vectors, vector cache) / effective configuration |
 | `bench <set.jsonl>` | evaluation: one `{"query", "expected": [paths]}` line per question |
 | `update [--check]` | switches to the latest release |
 
@@ -86,12 +86,17 @@ exclusions, fusion weights, token budget.
 - Indexing: 50,000 files in 43 s (keywords); unchanged files skipped in milliseconds.
 - Search: 23–40 ms p95 (hybrid), 8–10 ms (keywords only).
 - Embeddings: 66–140 chunks/s on GPU (DirectML), cached on disk. 1.4 GB RAM for 50,000 files.
+- Branch switches: vectors are also cached by content, so code already seen on another branch or
+  commit is not embedded again. Going back to a known commit of a 4,000-file codebase takes 13–16 s
+  instead of 2–3 minutes; even on a never-seen commit, about half of the changed chunks come from
+  the cache (moved or renumbered code).
 
 ## How it works
 
 ```
 index  : walk → hash → parse (tree-sitter) → chunk (1 symbol = 1 chunk) → BM25 (tantivy)
          → batched embeddings (fastembed/ort) → vectors.bin (f16, exact search)
+         (a chunk whose text was already embedded reuses its vector from vectors-cache.bin)
 search : (BM25 ∥ vectors) → weighted RRF fusion → optional reranker → one result per file
          (other matching passages listed under it) → compact answer
 ```

@@ -126,6 +126,9 @@ struct Engine {
     index: bm25::Bm25,
     embedder: Option<embed::Embedder>,
     vectors: Option<vectors::Store>,
+    /// Cache des vecteurs par contenu (vectors-cache.bin) : un morceau dont le texte a déjà été vu
+    /// (autre branche, retour en arrière) reprend son vecteur sans recalcul.
+    content: Option<vectors::Store>,
     model_error: Option<String>,
     model_notes: Vec<String>,
     reranker: Option<rerank::Reranker>,
@@ -146,6 +149,7 @@ impl Engine {
             index,
             embedder: None,
             vectors: None,
+            content: None,
             model_error: None,
             model_notes: Vec::new(),
             reranker: None,
@@ -218,10 +222,13 @@ impl Engine {
         }
         let loaded = embed::load(&self.config).and_then(|embedder| {
             let (store, note) = vectors::open(&self.data.join("vectors.bin"), embedder.dim, &embedder.identity)?;
-            Ok((embedder, store, note))
+            // Même modèle, même en-tête : un changement de modèle invalide aussi le cache.
+            let (content, _) = vectors::open(&self.data.join("vectors-cache.bin"), embedder.dim, &embedder.identity)?;
+            Ok((embedder, store, note, content))
         });
         match loaded {
-            Ok((embedder, store, note)) => {
+            Ok((embedder, store, note, content)) => {
+                self.content = Some(content);
                 eprintln!("Modèle {} chargé sur {}.", self.config.model.embedder, embedder.backend);
                 for note in &embedder.notes {
                     eprintln!("⚠ {note}");
@@ -243,44 +250,68 @@ impl Engine {
         }
     }
 
-    /// Calcule les vecteurs manquants et supprime ceux des morceaux disparus.
+    /// Calcule les vecteurs manquants et supprime ceux des morceaux disparus. Un contenu déjà vu
+    /// (vectors-cache.bin) reprend son vecteur sans recalcul : changer de branche ou revenir en
+    /// arrière ne recalcule que les morceaux jamais vus.
     /// Avec `engine`, verrouille par lot pour ne jamais bloquer les recherches longtemps.
     fn embed_missing(&mut self, max_batches: Option<usize>) -> Result<String> {
         if let Err(e) = self.ensure_models() {
             return Ok(format!("⚠ {e}: keyword search only."));
         }
         let t = Instant::now();
-        // Rien n'a changé et chaque morceau a son vecteur : inutile de relire tous les textes
-        // (78 000 sur un gros dépôt), ce qui bloquait les recherches au démarrage.
+        // Rien n'a changé, chaque morceau a son vecteur et le cache a déjà été rempli : inutile de
+        // relire tous les textes (78 000 sur un gros dépôt), ce qui bloquait les recherches au démarrage.
+        // (Le cache n'est vide qu'au premier passage ou après un changement de modèle ; on ne compare
+        // pas son nombre de vecteurs à celui des morceaux : deux morceaux identiques n'y comptent qu'une fois.)
         let chunks = self.index.counts().1 as usize;
-        if !self.index_changed && self.vectors.as_ref().is_some_and(|s| s.len() == chunks) {
+        let cache_filled = self.content.as_ref().is_some_and(|c| c.len() > 0);
+        if !self.index_changed && cache_filled && self.vectors.as_ref().is_some_and(|s| s.len() == chunks) {
             let backend = self.embedder.as_ref().map_or("?", |e| e.backend);
-            return Ok(format!("\rVecteurs : 0 calculés (0/s sur {backend}), 0 supprimés, 0 restants."));
+            return Ok(format!("\rVecteurs : 0 calculés (0/s sur {backend}), 0 repris du cache, 0 supprimés, 0 restants."));
         }
         let texts = self.index.chunk_texts()?;
-        let (embedder, store) = (self.embedder.as_mut().expect("chargé"), self.vectors.as_mut().expect("ouvert"));
+        let embedder = self.embedder.as_mut().expect("chargé");
+        let (store, content) = (self.vectors.as_mut().expect("ouvert"), self.content.as_mut().expect("ouvert"));
         let live: HashSet<u64> = texts.iter().map(|(id, _)| *id).collect();
         let have = store.ids();
         let stale: Vec<u64> = have.difference(&live).copied().collect();
         store.delete(&stale)?;
-        let missing: Vec<(u64, String)> = texts.into_iter().filter(|(id, _)| !have.contains(id)).collect();
-        let total = missing.len();
+        let plan = vectors::plan(texts, &have, |key| content.contains(key));
+        let live_keys: HashSet<u64> = plan.seed.iter().chain(&plan.reuse).map(|&(_, k)| k).chain(plan.compute.iter().map(|c| c.1)).collect();
+        // Vecteurs déjà calculés mais pas encore dans le cache (premier passage avec le cache, ou
+        // ancienne version) : ils y vont, pour survivre à la disparition de leur morceau.
+        let seed_vecs = store.get_many(&plan.seed.iter().map(|&(id, _)| id).collect::<Vec<_>>())?;
+        content.put(plan.seed.iter().zip(seed_vecs).filter_map(|(&(_, k), v)| Some((k, v?))).collect())?;
+        // Contenus déjà vus : vecteur repris du cache, sans modèle.
+        let reused = content.get_many(&plan.reuse.iter().map(|&(_, k)| k).collect::<Vec<_>>())?;
+        store.put(plan.reuse.iter().zip(reused).filter_map(|(&(id, _), v)| Some((id, v?))).collect())?;
+        let total = plan.compute.len();
         let mut done = 0;
-        for batch in missing.chunks(EMBED_BATCH).take(max_batches.unwrap_or(usize::MAX)) {
-            let texts: Vec<String> = batch.iter().map(|(_, t)| t.clone()).collect();
+        for batch in plan.compute.chunks(EMBED_BATCH).take(max_batches.unwrap_or(usize::MAX)) {
+            let texts: Vec<String> = batch.iter().map(|(_, _, t)| t.clone()).collect();
             let vecs = embedder.embed_documents(&texts)?;
-            store.put(batch.iter().map(|(id, _)| *id).zip(vecs).collect())?;
+            content.put(batch.iter().map(|&(_, k, _)| k).zip(vecs.iter().cloned()).collect())?;
+            store.put(batch.iter().map(|&(id, _, _)| id).zip(vecs).collect())?;
             done += batch.len();
             if max_batches.is_none() {
                 eprint!("\rVecteurs : {done}/{total}");
             }
         }
+        // Le cache garde au plus deux fois le dépôt : au-delà, les contenus les plus anciens partent.
+        content.evict_oldest((2 * live.len()).max(20_000), &live_keys)?;
+        content.compact_if_needed()?;
         store.compact_if_needed()?;
         if total == done {
             self.index_changed = false;
         }
         let rate = done as f64 / t.elapsed().as_secs_f64().max(1e-3);
-        Ok(format!("\rVecteurs : {done} calculés ({rate:.0}/s sur {}), {} supprimés, {} restants.", embedder.backend, stale.len(), total - done))
+        Ok(format!(
+            "\rVecteurs : {done} calculés ({rate:.0}/s sur {}), {} repris du cache, {} supprimés, {} restants.",
+            embedder.backend,
+            plan.reuse.len(),
+            stale.len(),
+            total - done
+        ))
     }
 
     fn vector_leg(&mut self, query: &str) -> Result<Vec<Hit>, String> {
@@ -359,6 +390,11 @@ impl Engine {
             files,
             chunks,
             vectors: self.vectors.as_ref().map(|s| s.len()).or_else(|| vectors::peek(&self.data.join("vectors.bin"))),
+            cached: {
+                let path = self.data.join("vectors-cache.bin");
+                let n = self.content.as_ref().map(|s| s.len()).or_else(|| vectors::peek(&path));
+                n.map(|n| (n, std::fs::metadata(&path).map_or(0, |m| m.len())))
+            },
             model: &self.config.model.embedder,
             backend: self.embedder.as_ref().map(|e| e.backend),
             disk_bytes: status::dir_size(&self.data),

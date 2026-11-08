@@ -100,6 +100,40 @@ fn scan(bytes: &[u8], dim: usize) -> (HashMap<u64, u64>, usize, usize) {
     (offsets, dead, pos)
 }
 
+/// Clé du cache de vecteurs (vectors-cache.bin) : empreinte du texte embarqué. Le modèle, ses
+/// préfixes et sa longueur maximale sont dans l'en-tête du fichier (`identity`), qui invalide tout
+/// le cache quand l'un d'eux change.
+pub fn content_key(text: &str) -> u64 {
+    u64::from_le_bytes(blake3::hash(text.as_bytes()).as_bytes()[..8].try_into().expect("8 octets"))
+}
+
+/// Répartition des morceaux vivants entre le magasin (id du morceau → vecteur) et le cache (clé du
+/// contenu → vecteur).
+#[derive(Debug, Default, PartialEq)]
+pub struct Plan {
+    /// Vecteur déjà dans le magasin mais pas encore dans le cache : à y copier, pour qu'un morceau
+    /// qui disparaît (changement de branche, fichier modifié) garde son vecteur.
+    pub seed: Vec<(u64, u64)>,
+    /// Pas de vecteur dans le magasin, mais ce contenu est dans le cache : repris sans calcul.
+    pub reuse: Vec<(u64, u64)>,
+    /// Contenu jamais vu : à calculer (id, clé, texte).
+    pub compute: Vec<(u64, u64, String)>,
+}
+
+pub fn plan(texts: Vec<(u64, String)>, have: &HashSet<u64>, cached: impl Fn(u64) -> bool) -> Plan {
+    let mut p = Plan::default();
+    for (id, text) in texts {
+        let key = content_key(&text);
+        match (have.contains(&id), cached(key)) {
+            (true, true) => {}
+            (true, false) => p.seed.push((id, key)),
+            (false, true) => p.reuse.push((id, key)),
+            (false, false) => p.compute.push((id, key, text)),
+        }
+    }
+    p
+}
+
 impl Store {
     pub fn len(&self) -> usize {
         self.offsets.len()
@@ -107,6 +141,38 @@ impl Store {
 
     pub fn ids(&self) -> HashSet<u64> {
         self.offsets.keys().copied().collect()
+    }
+
+    pub fn contains(&self, id: u64) -> bool {
+        self.offsets.contains_key(&id)
+    }
+
+    /// Les vecteurs de ces ids, dans le même ordre (None : absent).
+    pub fn get_many(&self, ids: &[u64]) -> Result<Vec<Option<Vec<f32>>>> {
+        // SAFETY : le fichier n'est jamais tronqué pendant que ce processus le lit.
+        let map = unsafe { memmap2::Mmap::map(&self.file)? };
+        Ok(ids
+            .iter()
+            .map(|id| {
+                let off = *self.offsets.get(id)? as usize;
+                let data = map.get(off..off + self.dim * 2)?;
+                Some(data.as_chunks::<2>().0.iter().map(|b| f16::from_le_bytes(*b).to_f32()).collect())
+            })
+            .collect())
+    }
+
+    /// Ramène le fichier à `max` vecteurs en supprimant les plus anciennement écrits, sauf ceux de
+    /// `keep`. Renvoie le nombre de vecteurs supprimés.
+    pub fn evict_oldest(&mut self, max: usize, keep: &HashSet<u64>) -> Result<usize> {
+        if self.offsets.len() <= max {
+            return Ok(0);
+        }
+        let mut old: Vec<(u64, u64)> = self.offsets.iter().filter(|(id, _)| !keep.contains(id)).map(|(&id, &off)| (off, id)).collect();
+        old.sort_unstable();
+        let n = (self.offsets.len() - max).min(old.len());
+        let ids: Vec<u64> = old[..n].iter().map(|&(_, id)| id).collect();
+        self.delete(&ids)?;
+        Ok(n)
     }
 
     fn encode(&self, op: u8, id: u64, v: Option<&[f32]>) -> Vec<u8> {
@@ -244,5 +310,31 @@ mod tests {
         let (s, note) = open(&path, 3, "m2").unwrap();
         assert!(note.is_some() && s.len() == 0, "autre modèle => vecteurs invalidés");
         std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn lecture_par_id_et_eviction_des_plus_anciens() {
+        let dir = std::env::temp_dir().join(format!("lcs-vec-cache-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let (mut s, _) = open(&dir.join("vectors-cache.bin"), 2, "m").unwrap();
+        s.put(vec![(10, vec![1.0, 0.0]), (20, vec![0.0, 1.0]), (30, vec![0.5, 0.5])]).unwrap();
+        let got = s.get_many(&[20, 99, 10]).unwrap();
+        assert_eq!(got, vec![Some(vec![0.0, 1.0]), None, Some(vec![1.0, 0.0])]);
+        // 10 est le plus ancien mais protégé : on supprime 20 (le suivant), pas 30.
+        assert_eq!(s.evict_oldest(2, &HashSet::from([10])).unwrap(), 1);
+        assert_eq!(s.ids(), HashSet::from([10, 30]));
+        assert_eq!(s.evict_oldest(5, &HashSet::new()).unwrap(), 0, "sous la limite : rien");
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn repartition_entre_magasin_et_cache() {
+        let (a, b, c, d) = ("fn a() {}", "fn b() {}", "fn c() {}", "fn d() {}");
+        let cached = HashSet::from([content_key(a), content_key(c)]);
+        let texts = vec![(1, a.to_string()), (2, b.to_string()), (3, c.to_string()), (4, d.to_string())];
+        let p = plan(texts, &HashSet::from([1, 2]), |k| cached.contains(&k));
+        assert_eq!(p.seed, vec![(2, content_key(b))], "dans le magasin, pas dans le cache : à copier");
+        assert_eq!(p.reuse, vec![(3, content_key(c))], "absent du magasin mais déjà vu : repris");
+        assert_eq!(p.compute, vec![(4, content_key(d), d.to_string())], "jamais vu : à calculer");
     }
 }

@@ -37,6 +37,8 @@ pub struct Info<'a> {
     pub files: u64,
     pub chunks: u64,
     pub vectors: Option<usize>,
+    /// Vecteurs du cache par contenu (vectors-cache.bin) et sa taille sur disque.
+    pub cached: Option<(usize, u64)>,
     pub model: &'a str,
     pub backend: Option<&'a str>,
     pub disk_bytes: u64,
@@ -49,10 +51,14 @@ pub fn render(i: &Info) -> String {
         Some(v) => v.to_string(),
         None => "aucun (modèle jamais chargé)".into(),
     };
+    let cache = match i.cached {
+        Some((n, bytes)) => format!("{n} contenus déjà vus, repris sans recalcul ({:.1} Mo)", bytes as f64 / 1e6),
+        None => "vide".into(),
+    };
     let s = &i.stats;
     let avg = s.total_search_ms.checked_div(s.searches).unwrap_or(0);
     format!(
-        "Projet      : {}\nFichiers    : {}\nMorceaux    : {}\nVecteurs    : {coverage}\nModèle      : {}\nBackend     : {}\nIndex       : {:.1} Mo\nRecherches  : {} ({} avec résultats, {avg} ms en moyenne)\nDernière indexation : {} fichiers en {} ms\n",
+        "Projet      : {}\nFichiers    : {}\nMorceaux    : {}\nVecteurs    : {coverage}\nCache       : {cache}\nModèle      : {}\nBackend     : {}\nIndex       : {:.1} Mo\nRecherches  : {} ({} avec résultats, {avg} ms en moyenne)\nDernière indexation : {} fichiers en {} ms\n",
         i.root.display(),
         i.files,
         i.chunks,
