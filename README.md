@@ -11,39 +11,28 @@ Local code search for AI coding agents (Claude Code, Codex, Cursor…). It hands
 of code (`file:line` + snippet), found by meaning and by keywords, over MCP. Embedded ONNX model,
 automatic GPU, no server, no cloud, no telemetry.
 
-## Benchmark: first answer on real tickets
+## Benchmark: 13 real tickets
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/benchmark-dark.svg">
-    <img src="assets/benchmark-light.svg" alt="Time to first answer versus cost per ticket: Opus 5.5 alone 43.4 s and $0.56; with lcs 0.1, 44.4 s and $0.47; with lcs 0.2, 31.5 s and $0.53; with lcs 0.3, 31.8 s and $0.47" width="760">
+    <img src="assets/benchmark-light.svg" alt="Steps per ticket vs. files found: Opus 5.5 alone 11.1 steps and 74%; lcs 0.1 9.5 steps and 74%; lcs 0.2 9.1 steps and 77%; lcs 0.3 8.7 steps and 73%; lcs 0.4 9.7 steps and 73%" width="760">
   </picture>
 </p>
 
-|  | Opus 5.5 alone | + lcs 0.1 | + lcs 0.2 | + lcs 0.3 |
-|---|---|---|---|---|
-| Mean time to first answer | 43.4 s | 44.4 s | **31.5 s** | 31.8 s |
-| Faster than Opus alone on | — | 7 of 13 tickets | **11 of 13 tickets** | 10 of 13 tickets |
-| Mean cost per ticket | $0.56 | **$0.47** | $0.53 | **$0.47** |
-| Files to change found | 74% | 74% | **77%** | 73% |
+|  | Opus 5.5 alone | lcs 0.1 | lcs 0.2 | lcs 0.3 | lcs 0.4 |
+|---|---|---|---|---|---|
+| Steps per ticket | 11.1 | 9.5 | 9.1 | **8.7** | 9.7 |
+| Files to change found | 74% | 74% | **77%** | 73% | 73% |
+| Cost per ticket | $0.56 | **$0.47** | $0.53 | **$0.47** | $0.52 |
 
-With lcs 0.3, Opus 5.5 reaches its first answer 27% sooner than alone (31.8 s instead of 43.4 s)
-and costs 15% less per ticket ($0.47 instead of $0.56), for about the same share of files found
-(73% vs 74%: one file fewer out of 34, within the noise of a single run). Compared with 0.2: same
-speed, 10% cheaper and a quarter fewer grep calls, because lcs now gives the agent its instructions
-in English and tells it to trust the results instead of grepping again for a file already found.
-lcs 0.2 brought one result per file, queries in the language of the code and always-loaded tools;
-lcs 0.1 matched Opus alone on speed and accuracy for 15% less.
+With lcs, Opus 5.5 needs 13–22% fewer steps to find the files to change, for the same accuracy and
+up to 15% less per ticket.
 
-lcs 0.3 also tried a prompt hook that hands the agent the files probably involved before its first
-turn. On these tickets it made things worse (41.4 s, 71% of files found): a search on the raw
-ticket mostly returned test fixtures, docs and translations. It ships off by default.
-
-**How it was measured.** 13 real client tickets written by product owners, on a production codebase
-several years old (about 4,000 files). Each ticket is replayed at the commit of its time in a fresh
-Claude Code session, with the same configuration and tools for every setup (one run each); the
-answer is compared with the files actually changed. Model loading is excluded from the lcs 0.1 times
-(0.2 and 0.3 preload it). The client code and the tickets stay private: only these aggregates are published.
+**Method.** 13 real client tickets on a production codebase of about 4,000 files, each replayed at its
+commit in a fresh Claude Code session (Opus 5.5, one run per setup), compared with the files actually
+changed. Steps are the agent's tool rounds before it answers. Time is not compared: it depends on API
+load when the run happens. The code and the tickets stay private.
 
 ## Install
 
@@ -54,58 +43,46 @@ Download a binary from the [latest release](https://github.com/djdevpro/local-co
 cargo install --git https://github.com/djdevpro/local-code-search
 ```
 
-`lcs update` then keeps it up to date (SHA-256 verified).
+`lcs update` keeps it up to date (SHA-256 verified).
 
 ## Quick start
 
 ```bash
 lcs --root /path/to/project init       # hooks lcs into Claude Code, Codex and Cursor
 lcs --root /path/to/project index      # keywords right away, then vectors
-lcs --root /path/to/project search "where is the keyboard shortcut handled?"   # try it
+lcs --root /path/to/project search "where is the keyboard shortcut handled?"
 ```
 
 | Command | What it does |
 |---|---|
+| `init [--dry-run]` | MCP config and agent instructions for Claude Code, Codex and Cursor (existing settings kept, `.bak` backups) |
 | `index [--no-embed]` | updates the index (only changed files are re-read) |
-| `search <query> [--mode bm25\|vector\|hybrid] [-n N] [--json] [--passages]` | ranked results, one per file (`--passages`: one per passage) |
+| `search <query> [--mode bm25\|vector\|hybrid] [-n N] [--json]` | ranked results, one per file |
 | `def <name>` | exact definition of a symbol (`Parent::name` accepted) |
-| `serve` | MCP server over stdio (`search`, `def`, `status`), keeps the index fresh |
-| `watch` | re-indexes on every change |
-| `init [--dry-run]` | Claude Code: `.mcp.json` (lcs tools always loaded) and a CLAUDE.md section. Codex, if present: `.codex/config.toml` and an AGENTS.md section. Cursor, if present: `.cursor/mcp.json` and an always-applied rule. Other settings are kept, with `.bak` backups |
-| `hook prompt` | Experimental `UserPromptSubmit` hook for Claude Code and Codex, off by default (`[hook] enabled = true`, then `init`): gives the agent the files probably involved before its first turn |
-| `status` / `config` | index statistics (files, chunks, vectors, vector cache) / effective configuration |
+| `serve` / `watch` | MCP server over stdio / re-index on every change |
+| `status` / `config` | index statistics / effective configuration |
 | `bench <set.jsonl>` | evaluation: one `{"query", "expected": [paths]}` line per question |
 | `update [--check]` | switches to the latest release |
 
-Global options: `--root <folder>`, `--device auto|cpu|cuda|directml|coreml`.
-Optional `local-code-search.toml` at the project root: model, reranker, device, languages,
-exclusions, fusion weights, token budget.
+Global options: `--root <folder>`, `--device auto|cpu|cuda|directml|coreml`. Optional
+`local-code-search.toml` at the project root (model, device, languages, exclusions, fusion weights).
 
 ## Performance
 
 - Indexing: 50,000 files in 43 s (keywords); unchanged files skipped in milliseconds.
 - Search: 23–40 ms p95 (hybrid), 8–10 ms (keywords only).
-- Embeddings: 66–140 chunks/s on GPU (DirectML), cached on disk. 1.4 GB RAM for 50,000 files.
-- Branch switches: vectors are also cached by content, so code already seen on another branch or
-  commit is not embedded again. Going back to a known commit of a 4,000-file codebase takes 13–16 s
-  instead of 2–3 minutes; even on a never-seen commit, about half of the changed chunks come from
-  the cache (moved or renumbered code).
+- Embeddings: 66–140 chunks/s on GPU, cached by content: back on a branch or commit already seen,
+  re-indexing takes seconds instead of minutes.
 
 ## How it works
 
 ```
 index  : walk → hash → parse (tree-sitter) → chunk (1 symbol = 1 chunk) → BM25 (tantivy)
-         → batched embeddings (fastembed/ort) → vectors.bin (f16, exact search)
-         (a chunk whose text was already embedded reuses its vector from vectors-cache.bin)
+         → embeddings (fastembed/ort, cached by content) → vectors.bin (f16, exact search)
 search : (BM25 ∥ vectors) → weighted RRF fusion → optional reranker → one result per file
-         (other matching passages listed under it) → compact answer
 ```
 
-Queries work best in the language of the code (usually English) and with its words; lcs tells the
-agent so in its MCP instructions and tool description, even when the user writes in another language.
-
-Symbol-level chunking for Python, TypeScript/JavaScript, Rust, Go and PHP; other text files are
-indexed as line windows. The only outbound connections are model downloads and `lcs update`, both
-on demand; `tests/egress.rs` fails if any other appears.
+Symbol-level chunks for Python, TypeScript/JavaScript, Rust, Go and PHP; other text files as line
+windows. No outbound connection except model downloads and `lcs update` (`tests/egress.rs` enforces it).
 
 License: MIT OR Apache-2.0.

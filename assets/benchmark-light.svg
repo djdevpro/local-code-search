@@ -1,42 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" width="760" height="440" role="img" aria-label="Time to first answer vs. cost per ticket. Opus 5.5 alone: 43.4 s, $0.56; lcs 0.1: 44.4 s, $0.47; lcs 0.2: 31.5 s, $0.53; lcs 0.3: 31.8 s, $0.47">
-<rect width="760" height="440" rx="10" fill="#fcfcfb"/>
-<text x="32.0" y="38.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="16" font-weight="600" fill="#0b0b0b" text-anchor="start">Time to first answer vs. cost per ticket</text>
-<text x="32.0" y="58.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">13 real client tickets · Opus 5.5</text>
-<circle cx="37" cy="84" r="5" fill="#898781" stroke="#898781" stroke-width="0"/>
-<text x="47.0" y="88.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">Opus 5.5 alone</text>
-<circle cx="159.39999999999998" cy="84" r="5" fill="#86b6ef" stroke="#86b6ef" stroke-width="0"/>
-<text x="169.4" y="88.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">lcs 0.1</text>
-<circle cx="235.59999999999997" cy="84" r="5" fill="#2a78d6" stroke="#2a78d6" stroke-width="0"/>
-<text x="245.6" y="88.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">lcs 0.2</text>
-<circle cx="311.79999999999995" cy="84" r="5" fill="#104281" stroke="#104281" stroke-width="0"/>
-<text x="321.8" y="88.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">lcs 0.3</text>
-<rect x="88" y="183.7" width="454.4" height="188.3" fill="#2a78d6" opacity="0.08"/>
-<text x="98.0" y="362.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#52514e" text-anchor="start">Faster and cheaper</text>
-<line x1="88.0" x2="88.0" y1="116" y2="372" stroke="#e1e0d9"/>
-<text x="88.0" y="392.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="middle" font-variant-numeric="tabular-nums">$0.45</text>
-<line x1="301.3" x2="301.3" y1="116" y2="372" stroke="#e1e0d9"/>
-<text x="301.3" y="392.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="middle" font-variant-numeric="tabular-nums">$0.50</text>
-<line x1="514.7" x2="514.7" y1="116" y2="372" stroke="#e1e0d9"/>
-<text x="514.7" y="392.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="middle" font-variant-numeric="tabular-nums">$0.55</text>
-<line x1="728.0" x2="728.0" y1="116" y2="372" stroke="#e1e0d9"/>
-<text x="728.0" y="392.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="middle" font-variant-numeric="tabular-nums">$0.60</text>
-<line x1="88" x2="728" y1="372.0" y2="372.0" stroke="#e1e0d9"/>
-<text x="78.0" y="376.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="end" font-variant-numeric="tabular-nums">25 s</text>
-<line x1="88" x2="728" y1="320.8" y2="320.8" stroke="#e1e0d9"/>
-<text x="78.0" y="324.8" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="end" font-variant-numeric="tabular-nums">30 s</text>
-<line x1="88" x2="728" y1="269.6" y2="269.6" stroke="#e1e0d9"/>
-<text x="78.0" y="273.6" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="end" font-variant-numeric="tabular-nums">35 s</text>
-<line x1="88" x2="728" y1="218.4" y2="218.4" stroke="#e1e0d9"/>
-<text x="78.0" y="222.4" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="end" font-variant-numeric="tabular-nums">40 s</text>
-<line x1="88" x2="728" y1="167.2" y2="167.2" stroke="#e1e0d9"/>
-<text x="78.0" y="171.2" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="end" font-variant-numeric="tabular-nums">45 s</text>
-<line x1="88" x2="728" y1="116.0" y2="116.0" stroke="#e1e0d9"/>
-<text x="78.0" y="120.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="end" font-variant-numeric="tabular-nums">50 s</text>
-<text x="408.0" y="416.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="middle">Cost per ticket (USD)</text>
-<text x="24.0" y="244.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="middle" transform="rotate(-90 24 244.0)">Time to first answer</text>
-<polyline points="190.4,173.0 422.2,305.8 186.3,302.0" fill="none" stroke="#2a78d6" stroke-width="1.5" opacity="0.5"/>
-<g><title>Opus 5.5 alone: 43.4 s, $0.56 per ticket, 74% of files found</title><circle cx="542.4" cy="183.7" r="7" fill="#898781" stroke="#fcfcfb" stroke-width="2"/><text x="555.4" y="187.7" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="500" fill="#0b0b0b" text-anchor="start">Opus 5.5 alone</text></g>
-<g><title>lcs 0.1: 44.4 s, $0.47 per ticket, 74% of files found</title><circle cx="190.4" cy="173.0" r="7" fill="#86b6ef" stroke="#fcfcfb" stroke-width="2"/><text x="203.4" y="177.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="500" fill="#0b0b0b" text-anchor="start">lcs 0.1</text></g>
-<g><title>lcs 0.2: 31.5 s, $0.53 per ticket, 77% of files found</title><circle cx="422.2" cy="305.8" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><text x="435.2" y="309.8" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="500" fill="#0b0b0b" text-anchor="start">lcs 0.2</text></g>
-<g><title>lcs 0.3: 31.8 s, $0.47 per ticket, 73% of files found</title><circle cx="186.3" cy="302.0" r="7" fill="#104281" stroke="#fcfcfb" stroke-width="2"/><text x="173.3" y="306.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="500" fill="#0b0b0b" text-anchor="end">lcs 0.3</text></g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" width="760" height="420" role="img" aria-label="Steps per ticket vs. files found. Opus 5.5 alone: 11.1 steps, 74% of files found; lcs 0.1: 9.5 steps, 74% of files found; lcs 0.2: 9.1 steps, 77% of files found; lcs 0.3: 8.7 steps, 73% of files found; lcs 0.4: 9.7 steps, 73% of files found">
+<rect width="760" height="420" rx="10" fill="#fcfcfb"/>
+<text x="32.0" y="38.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="16" font-weight="600" fill="#0b0b0b" text-anchor="start">Steps per ticket vs. files found</text>
+<text x="32.0" y="58.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">13 real client tickets · Opus 5.5 in Claude Code · fewer steps is better</text>
+<circle cx="37" cy="80" r="5" fill="#898781"/>
+<text x="47.0" y="84.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">Opus 5.5 alone</text>
+<circle cx="159.39999999999998" cy="80" r="5" fill="#86b6ef"/>
+<text x="169.4" y="84.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">lcs 0.1</text>
+<circle cx="235.59999999999997" cy="80" r="5" fill="#2a78d6"/>
+<text x="245.6" y="84.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">lcs 0.2</text>
+<circle cx="311.79999999999995" cy="80" r="5" fill="#104281"/>
+<text x="321.8" y="84.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">lcs 0.3</text>
+<circle cx="387.99999999999994" cy="80" r="5" fill="#0a2a52"/>
+<text x="398.0" y="84.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">lcs 0.4</text>
+<rect x="88" y="100" width="492.3" height="252" fill="#2a78d6" opacity="0.07"/>
+<text x="98.0" y="342.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#52514e" text-anchor="start">Fewer steps than Opus alone</text>
+<line x1="88.0" x2="88.0" y1="100" y2="352" stroke="#e1e0d9"/>
+<text x="88.0" y="372.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="middle" font-variant-numeric="tabular-nums">8</text>
+<line x1="248.0" x2="248.0" y1="100" y2="352" stroke="#e1e0d9"/>
+<text x="248.0" y="372.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="middle" font-variant-numeric="tabular-nums">9</text>
+<line x1="408.0" x2="408.0" y1="100" y2="352" stroke="#e1e0d9"/>
+<text x="408.0" y="372.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="middle" font-variant-numeric="tabular-nums">10</text>
+<line x1="568.0" x2="568.0" y1="100" y2="352" stroke="#e1e0d9"/>
+<text x="568.0" y="372.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="middle" font-variant-numeric="tabular-nums">11</text>
+<line x1="728.0" x2="728.0" y1="100" y2="352" stroke="#e1e0d9"/>
+<text x="728.0" y="372.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="middle" font-variant-numeric="tabular-nums">12</text>
+<line x1="88" x2="728" y1="352.0" y2="352.0" stroke="#e1e0d9"/>
+<text x="78.0" y="356.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="end" font-variant-numeric="tabular-nums">65%</text>
+<line x1="88" x2="728" y1="268.0" y2="268.0" stroke="#e1e0d9"/>
+<text x="78.0" y="272.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="end" font-variant-numeric="tabular-nums">70%</text>
+<line x1="88" x2="728" y1="184.0" y2="184.0" stroke="#e1e0d9"/>
+<text x="78.0" y="188.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="end" font-variant-numeric="tabular-nums">75%</text>
+<line x1="88" x2="728" y1="100.0" y2="100.0" stroke="#e1e0d9"/>
+<text x="78.0" y="104.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#898781" text-anchor="end" font-variant-numeric="tabular-nums">80%</text>
+<text x="408.0" y="396.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="middle">Steps per ticket (tool rounds before the answer)</text>
+<text x="24.0" y="226.0" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#52514e" text-anchor="middle" transform="rotate(-90 24 226.0)">Files to change found</text>
+<polyline points="334.2,195.6 260.3,152.6 198.8,221.5 358.8,217.2" fill="none" stroke="#2a78d6" stroke-width="1.5" opacity="0.5"/>
+<g><title>Opus 5.5 alone: 11.1 steps per ticket, 74% of files found, $0.56 per ticket</title><circle cx="580.3" cy="195.8" r="7" fill="#898781" stroke="#fcfcfb" stroke-width="2"/><text x="593.3" y="199.8" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="500" fill="#0b0b0b" text-anchor="start">Opus 5.5 alone</text></g>
+<g><title>lcs 0.1: 9.5 steps per ticket, 74% of files found, $0.47 per ticket</title><circle cx="334.2" cy="195.6" r="7" fill="#86b6ef" stroke="#fcfcfb" stroke-width="2"/><text x="347.2" y="199.6" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="500" fill="#0b0b0b" text-anchor="start">lcs 0.1</text></g>
+<g><title>lcs 0.2: 9.1 steps per ticket, 77% of files found, $0.53 per ticket</title><circle cx="260.3" cy="152.6" r="7" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><text x="273.3" y="156.6" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="500" fill="#0b0b0b" text-anchor="start">lcs 0.2</text></g>
+<g><title>lcs 0.3: 8.7 steps per ticket, 73% of files found, $0.47 per ticket</title><circle cx="198.8" cy="221.5" r="7" fill="#104281" stroke="#fcfcfb" stroke-width="2"/><text x="185.8" y="225.5" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="500" fill="#0b0b0b" text-anchor="end">lcs 0.3</text></g>
+<g><title>lcs 0.4: 9.7 steps per ticket, 73% of files found, $0.52 per ticket</title><circle cx="358.8" cy="217.2" r="7" fill="#0a2a52" stroke="#fcfcfb" stroke-width="2"/><text x="371.8" y="221.2" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" font-weight="500" fill="#0b0b0b" text-anchor="start">lcs 0.4</text></g>
 </svg>
