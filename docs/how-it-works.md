@@ -161,10 +161,11 @@ fails the build if a new connection appears in the code.
 
 ## Benchmark method
 
-Claude Code (Opus 5.5) received 13 real tickets from a client project of about 4,000 files. Each ticket
+Claude Code (Opus 5.5) received 90 real tickets from a client project of about 4,000 files. Each ticket
+is the first request of a real Claude Code conversation, and the expected files are those changed for it. Each ticket
 was replayed at the commit of its time in a fresh session, which had to list the files to change without
 changing anything. One setup had the usual tools of Claude Code, the other had the same tools plus lcs.
 The score counts the steps, one round of tool calls each, and the share of files found among those
 changed in the original work. Both setups ran with an API key, a minimal environment and maximum effort,
-one run each. Time is not compared, because it depends on the load of the API. The code and the tickets
+one run each. The gap in steps and cost is significant (paired Wilcoxon test, p below 0.02), the gap in files found is not. Time is not compared, because it depends on the load of the API. The code and the tickets
 stay private.

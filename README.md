@@ -16,18 +16,20 @@ there is one, with no cloud and no telemetry.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/benchmark-dark.svg">
-    <img src="assets/benchmark-light.svg" alt="Steps per ticket against files found. Opus 5.5 alone takes 10.4 steps and finds 69% of the files, with lcs it takes 8.2 steps and finds 74%." width="760">
+    <img src="assets/benchmark-light.svg" alt="Steps per ticket against files found. Opus 5.5 alone takes 10.6 steps and finds 58% of the files, with lcs it takes 8.8 steps and finds 57%." width="760">
   </picture>
 </p>
 
 |  | Opus 5.5 alone | with lcs |
 |---|---|---|
-| Steps per ticket (fewer is better) | 10.4 | **8.2** |
-| Files to change found (more is better) | 69% | **74%** |
-| Cost per ticket | $0.29 | **$0.25** |
+| Steps per ticket (fewer is better) | 10.6 | **8.8** |
+| Files to change found (more is better) | 58% | 57% |
+| Cost per ticket | $0.30 | **$0.26** |
 
-Claude Code (Opus 5.5) had to find the files to change for 13 real tickets of a client project, once
-with its usual tools and once with lcs. A step is one round of tool calls before the answer. The
+Claude Code (Opus 5.5) had to find the files to change for 90 real tickets of a client project, once
+with its usual tools and once with lcs. A step is one round of tool calls before the answer. With lcs the
+agent needs 17% fewer steps and costs 12% less, for the same accuracy. On the 61 harder tickets, the ones
+where Opus alone needs more than 6 steps, it saves 21% of the steps. The
 [method](docs/how-it-works.md#benchmark-method) gives the details.
 
 ## Setup
