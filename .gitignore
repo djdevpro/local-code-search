@@ -3,3 +3,5 @@
 __pycache__/
 # Banc d'essai : strictement local (données confidentielles), jamais publié
 /banc/
+# Labo LLM (réécriture des questions par un petit modèle), en pause, le moteur n'en a pas besoin
+/llm/
