@@ -28,8 +28,7 @@ there is one, with no cloud and no telemetry.
 
 Claude Code (Opus 5.5) had to find the files to change for 90 real tickets of a client project, once
 with its usual tools and once with lcs. A step is one round of tool calls before the answer. With lcs the
-agent needs 17% fewer steps and costs 12% less, for the same accuracy. On the 61 harder tickets, the ones
-where Opus alone needs more than 6 steps, it saves 21% of the steps. The
+agent needs 17% fewer steps and costs 12% less, for the same accuracy. The
 [method](docs/how-it-works.md#benchmark-method) gives the details.
 
 ## Setup
