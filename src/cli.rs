@@ -13,8 +13,9 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub device: Option<String>,
 
+    // Sans commande, le fichier téléchargé s'installe (voir `install`).
     #[command(subcommand)]
-    pub command: Command,
+    pub command: Option<Command>,
 }
 
 #[derive(Subcommand)]
@@ -59,6 +60,8 @@ pub enum Command {
     Status,
     /// Affiche la configuration effective
     Config,
+    /// Installe lcs dans ~/.local/bin et l'ajoute au PATH (fait seul au premier lancement)
+    Install,
     /// Passe à la dernière version publiée (somme SHA-256 vérifiée)
     Update {
         /// Vérifie seulement s'il existe une nouvelle version

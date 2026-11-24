@@ -111,6 +111,7 @@ Claude Code is always set up. Codex and Cursor are set up when they are installe
 
 | Command | What it does |
 |---|---|
+| `install` | copies lcs to `~/.local/bin` and adds that folder to the PATH; a downloaded binary does it by itself on its first run |
 | `init [--dry-run]` | sets lcs up in Claude Code, Codex and Cursor |
 | `index [--no-embed]` | updates the index and reads changed files only |
 | `search <query> [--mode bm25\|vector\|hybrid] [-n N] [--json] [--passages]` | ranked results, one per file unless `--passages` |

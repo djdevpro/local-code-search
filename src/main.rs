@@ -16,6 +16,7 @@ mod fuse;
 mod group;
 mod hash;
 mod init;
+mod install;
 mod mcp;
 mod parse;
 mod rerank;
@@ -28,7 +29,7 @@ mod walk;
 mod watch;
 
 use anyhow::Result;
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use cli::{Cli, Command};
 use config::Config;
 use rayon::prelude::*;
@@ -48,11 +49,20 @@ const EMBED_BATCH: usize = 64;
 const FILE_BATCH: usize = 500;
 
 fn main() -> Result<()> {
+    install::auto();
     let cli = Cli::parse();
+    // Avant la configuration : l'installation ne dépend pas du dossier courant.
+    let command = match cli.command {
+        None if install::wanted() => return install::run(true),
+        None => return Ok(Cli::command().print_help()?),
+        Some(Command::Install) => return install::run(false),
+        Some(command) => command,
+    };
     let root = walk::canonical(&cli.root)?;
     let config = config::load(&root, cli.device)?;
 
-    match cli.command {
+    match command {
+        Command::Install => unreachable!("traité plus haut"),
         Command::Config => print!("{}", toml::to_string_pretty(&config)?),
         Command::Update { check } => update::run(VERSION, check)?,
         Command::Init { dry_run } => {
