@@ -149,6 +149,17 @@ jobs:
           "${{ matrix.binary }}" --root . index --no-embed
           "${{ matrix.binary }}" --root . search "split identifiers into subwords" --mode bm25 -n 2
 
+      # Le fichier téléchargé s'installe seul : copie nommée lcs dans ~/.local/bin, dossier ajouté au PATH.
+      - name: Install test
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash tests/install.sh "${{ matrix.binary }}"
+
+      - name: Install test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tests/install.ps1 "${{ matrix.binary }}"
+
       - name: Package
         shell: bash
         run: |

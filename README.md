@@ -37,11 +37,15 @@ Paste this into Claude Code.
 
 ```text
 Install local-code-search (https://github.com/djdevpro/local-code-search).
-Download the lcs binary for this system from the latest release, put it in my PATH
-and check that `lcs --version` works.
+Download the lcs binary for this system from the latest release and run it with `install`:
+it copies itself to ~/.local/bin as `lcs` and adds that folder to my PATH.
+Check that `lcs --version` works in a new terminal.
 When a project would benefit from it, ask me first, then run `lcs --root <project> init`.
 Index a project only when we start working on it, with `lcs --root <project> index`.
 ```
+
+By hand, download the binary and run it once, a double-click is enough on Windows. It installs itself
+the same way, then `lcs` works in any new terminal.
 
 `init` registers this MCP server in Claude Code, Codex and Cursor, and adds a short guide for the agent.
 
